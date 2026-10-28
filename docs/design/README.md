@@ -55,3 +55,8 @@ Radios: 8 / 10 / 14 / 16 px. Espaciado base 4px. Todo está como variables CSS e
 - Modal/drawer: manejar foco, `Esc` y `aria-modal` (ya modelados en el HTML); considerar Radix Dialog.
 - Los iconos son `<symbol>` de un sprite: pasar a un componente `Icon` o a `lucide-react`.
 - Los HTML finales se generaron desde plantillas con un sprite y cabecera compartidos; en React eso queda en `AppShell`.
+
+## Ajustes pendientes al portar a React (H6)
+
+- Login: usar las credenciales demo reales del seed (`admin@smartparking.local`, `cliente1@smartparking.local`) y quitar "¿Olvidaste tu contraseña?" (fuera de alcance).
+- Admin reservas: la columna de acciones se corta a 1440 px; mover acciones a un menú o reducir columnas.
