@@ -1,0 +1,11 @@
+{
+  "name": "smartparking",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["contracts", "identity-service"],
+  "scripts": {
+    "build": "npm run build -w contracts && npm run build -w identity-service",
+    "test": "npm test -w identity-service"
+  },
+  "engines": { "node": ">=22" }
+}

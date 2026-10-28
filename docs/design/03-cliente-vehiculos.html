@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+<head>
+<title>Mis vehículos · SmartParking</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+</defs></svg>
+<header class="navbar">
+  <a class="brand" href="index.html" aria-label="SmartParking - inicio"><img src="logo-mark.svg" alt="" width="34" height="34"><span class="brand-text">Smart<b>Parking</b></span></a>
+  <div class="user-menu">
+    <button class="user-btn" aria-haspopup="menu" aria-expanded="false" data-menu="user-dd">
+      <span class="avatar avatar-sm" aria-hidden="true">MF</span>
+      <span class="who"><span>María Fernández</span><span class="badge badge-role badge-cliente">CLIENTE</span></span>
+      <svg class="icon icon-sm" aria-hidden="true"><use href="#i-chevron"/></svg>
+    </button>
+    <div class="dropdown" id="user-dd" role="menu">
+      <a href="#" role="menuitem"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg> Mi perfil</a>
+      <button role="menuitem"><svg class="icon" aria-hidden="true"><use href="#i-logout"/></svg> Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+<div class="shell">
+  <nav class="sidebar" aria-label="Navegación principal"><p class="eyebrow">Mi cuenta</p><a class="nav-link" href="02-cliente-reservas.html"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Mis reservas<span class="pill">5</span></a><a class="nav-link" href="03-cliente-vehiculos.html" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg> Mis vehículos<span class="pill">3</span></a></nav>
+  <main class="main">
+    <div class="page-head">
+      <div><h1>Mis vehículos</h1><p>Los vehículos que podés usar para tus reservas.</p></div>
+      <button class="btn btn-primary" data-open="vehiculo-modal"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> Agregar vehículo</button>
+    </div>
+
+    <div class="vehiculos">
+      <article class="card vehiculo card-hover">
+        <div class="row-between" style="flex-wrap:nowrap"><div class="plate"><span class="plate-top">URUGUAY</span><span class="plate-num">SBA 1234</span></div><span class="kpi-icon blue" style="width:40px;height:40px"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg></span></div>
+        <div><h3>Toyota Corolla</h3><p class="small muted">Gris plata · 2022</p></div>
+        <div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding-top:var(--s-4)"><span class="small muted">2 reservas activas</span><button class="btn btn-secondary btn-sm" data-open="vehiculo-modal"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-pencil"/></svg> Editar</button></div>
+      </article>
+      <article class="card vehiculo card-hover">
+        <div class="row-between" style="flex-wrap:nowrap"><div class="plate"><span class="plate-top">URUGUAY</span><span class="plate-num">SCD 5678</span></div><span class="kpi-icon violet" style="width:40px;height:40px"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg></span></div>
+        <div><h3>Volkswagen Polo</h3><p class="small muted">Blanco · 2020</p></div>
+        <div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding-top:var(--s-4)"><span class="small muted">1 reserva activa</span><button class="btn btn-secondary btn-sm" data-open="vehiculo-modal"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-pencil"/></svg> Editar</button></div>
+      </article>
+      <article class="card vehiculo card-hover">
+        <div class="row-between" style="flex-wrap:nowrap"><div class="plate"><span class="plate-top">URUGUAY</span><span class="plate-num">STE 9021</span></div><span class="kpi-icon gray" style="width:40px;height:40px"><svg class="icon" aria-hidden="true"><use href="#i-car"/></svg></span></div>
+        <div><h3>Chevrolet Onix</h3><p class="small muted">Rojo · 2019</p></div>
+        <div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding-top:var(--s-4)"><span class="small muted">Sin reservas activas</span><button class="btn btn-secondary btn-sm" data-open="vehiculo-modal"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-pencil"/></svg> Editar</button></div>
+      </article>
+      <button class="card vehiculo" data-open="vehiculo-modal" style="border:2px dashed var(--border-strong);background:transparent;box-shadow:none;align-items:center;justify-content:center;cursor:pointer;font:600 15px var(--font);color:var(--text-2);min-height:200px">
+        <span class="empty-art" style="margin:0;width:52px;height:52px;border-radius:16px"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></span>Agregar otro vehículo
+      </button>
+    </div>
+  </main>
+</div>
+
+<div class="overlay is-open" id="vehiculo-modal" role="dialog" aria-modal="true" aria-labelledby="vm-title">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2 id="vm-title">Editar vehículo</h2><p class="small muted" style="margin-top:4px">La matrícula debe ser única en todo el sistema.</p></div>
+      <button class="btn btn-ghost btn-icon" data-close="vehiculo-modal" aria-label="Cerrar"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <form onsubmit="return false">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field full"><label class="label" for="mat">Matrícula</label><input class="input" id="mat" value="SBA 1234" style="font-weight:800;letter-spacing:.08em;text-transform:uppercase"><span class="hint">Formato uruguayo: 3 letras y 4 números.</span></div>
+          <div class="field"><label class="label" for="marca">Marca</label>
+            <select class="select" id="marca"><option>Toyota</option><option>Volkswagen</option><option>Chevrolet</option><option>Renault</option><option>Otra</option></select></div>
+          <div class="field"><label class="label" for="modelo">Modelo</label><input class="input" id="modelo" value="Corolla"></div>
+          <div class="field"><label class="label" for="color">Color</label><input class="input" id="color" value="Gris plata"></div>
+          <div class="field"><label class="label" for="anio">Año</label><input class="input" id="anio" inputmode="numeric" value="2022"></div>
+        </div>
+      </div>
+      <div class="modal-foot"><button type="button" class="btn btn-secondary" data-close="vehiculo-modal">Cancelar</button><button class="btn btn-primary" type="submit">Guardar cambios</button></div>
+    </form>
+  </div>
+</div>
+<script>
+document.querySelectorAll('[data-menu]').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();var m=document.getElementById(b.dataset.menu);var o=m.classList.toggle('is-open');b.setAttribute('aria-expanded',o)})});
+document.addEventListener('click',function(){document.querySelectorAll('.dropdown.is-open').forEach(function(d){d.classList.remove('is-open')})});
+document.querySelectorAll('[data-open]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.open).classList.add('is-open')})});
+document.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.close).classList.remove('is-open')})});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.overlay.is-open').forEach(function(o){o.classList.remove('is-open')})});
+</script>
+</body>
+</html>

@@ -2,3 +2,12 @@
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Node / build
+node_modules/
+dist/
+coverage/
+.env
+
+# Claves JWT generadas (conservar keys/.gitkeep)
+keys/*.pem

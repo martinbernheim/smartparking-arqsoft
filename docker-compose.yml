@@ -1,0 +1,168 @@
+name: smartparking
+
+services:
+  # ---------- Persistencia ----------
+  mongo:
+    image: mongo:7
+    ports: ["${MONGO_PORT:-27017}:27017"]
+    volumes: [mongo-data:/data/db]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  postgres:
+    image: postgres:16
+    command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=5", "-c", "hot_standby=on"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-smartparking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartparking}
+      POSTGRES_DB: ${POSTGRES_DB:-smartparking}
+      REPLICATION_USER: ${REPLICATION_USER:-replicator}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator}
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-replication.sh:/docker-entrypoint-initdb.d/10-init-replication.sh:ro
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Réplica de lectura (streaming). Perfil opcional: docker compose --profile replica up -d
+  # NOTA: definida pero no verificada en H0/H1.
+  postgres-replica:
+    image: postgres:16
+    profiles: ["replica"]
+    entrypoint: ["/bin/bash", "/replica-entrypoint.sh"]
+    environment:
+      PRIMARY_HOST: postgres
+      REPLICATION_USER: ${REPLICATION_USER:-replicator}
+      REPLICATION_PASSWORD: ${REPLICATION_PASSWORD:-replicator}
+      POSTGRES_USER: ${POSTGRES_USER:-smartparking}
+      POSTGRES_DB: ${POSTGRES_DB:-smartparking}
+    ports: ["${POSTGRES_REPLICA_PORT:-5433}:5432"]
+    volumes:
+      - postgres-replica-data:/var/lib/postgresql/data
+      - ./infra/postgres/replica-entrypoint.sh:/replica-entrypoint.sh:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    volumes: [redis-data:/data]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_UI_PORT:-15672}:15672"
+    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports: ["${ELASTICSEARCH_PORT:-9200}:9200"]
+    volumes: [es-data:/usr/share/elasticsearch/data]
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    profiles: ["observability"]
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports: ["${KIBANA_PORT:-5601}:5601"]
+    depends_on:
+      elasticsearch: { condition: service_healthy }
+    networks: [internal]
+
+  # ---------- Servicios de aplicación ----------
+  identity-service:
+    build:
+      context: .
+      dockerfile: identity-service/Dockerfile
+    environment:
+      PORT: 3001
+      MONGO_URL: ${MONGO_URL:-mongodb://mongo:27017/identity}
+      JWT_ISSUER: ${JWT_ISSUER:-smartparking-identity}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-3600}
+      JWT_PRIVATE_KEY_PATH: /run/keys/private.pem
+      JWT_PUBLIC_KEY_PATH: /run/keys/public.pem
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_CLIENT1_EMAIL: ${SEED_CLIENT1_EMAIL:-}
+      SEED_CLIENT1_PASSWORD: ${SEED_CLIENT1_PASSWORD:-}
+      SEED_CLIENT1_ID: ${SEED_CLIENT1_ID:-}
+      SEED_CLIENT2_EMAIL: ${SEED_CLIENT2_EMAIL:-}
+      SEED_CLIENT2_PASSWORD: ${SEED_CLIENT2_PASSWORD:-}
+      SEED_CLIENT2_ID: ${SEED_CLIENT2_ID:-}
+    volumes:
+      - ./keys:/run/keys:ro
+    # Puerto publicado solo para desarrollo (en H5 el acceso pasa por Nginx).
+    ports: ["${IDENTITY_PORT:-3001}:3001"]
+    depends_on:
+      mongo: { condition: service_healthy }
+    networks:
+      internal:
+        aliases: [identity]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # TODO (H2): api (x2 réplicas), build ./api, puerto interno 3000
+  # TODO (H4): audit-service, build ./audit-service
+  # TODO (H5): nginx (nginx:alpine, 8080:80) y web (SPA React + Vite servida por Nginx en /)
+
+networks:
+  internal:
+
+volumes:
+  mongo-data:
+  postgres-data:
+  postgres-replica-data:
+  redis-data:
+  rabbitmq-data:
+  es-data:

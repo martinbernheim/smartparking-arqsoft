@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es">
+<head>
+<title>Diseño · SmartParking</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="logo-mark.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+.wrap{max-width:1180px;margin:0 auto;padding:48px 24px 80px}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:40px}
+.hero img{height:56px;width:auto}
+h2.sec{margin:48px 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+.shot{display:block;color:inherit;font-weight:400;padding:0;overflow:hidden}
+.shot:hover{text-decoration:none}
+.thumb{height:210px;overflow:hidden;border-bottom:1px solid var(--border);background:var(--n-50);position:relative}
+.thumb iframe{width:1440px;height:900px;border:0;transform:scale(.236);transform-origin:0 0;pointer-events:none;position:absolute;left:0;top:0}
+.shot .info{padding:16px 20px}.shot h3{display:flex;justify-content:space-between;gap:8px}
+.shot .tag{font-size:11px;font-weight:700;color:var(--violet-800);background:var(--violet-100);padding:2px 8px;border-radius:99px;height:fit-content}
+.logos{display:grid;grid-template-columns:2fr 1fr 1fr;gap:20px}
+.logo-box{display:grid;place-items:center;min-height:160px;gap:12px;text-align:center}
+.logo-dark{background:var(--grad);color:#fff;border:0}
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.sw div{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);font-size:12px}
+.sw i{display:block;height:56px}.sw span{display:block;padding:8px 10px;font-weight:600}.sw small{display:block;color:var(--text-2);font-weight:500}
+.scale{display:flex;border-radius:12px;overflow:hidden;margin-bottom:12px}.scale i{flex:1;height:44px}
+.type p{margin:0 0 10px}
+@media (max-width:760px){.logos{grid-template-columns:1fr}.thumb{height:190px}.grid{grid-template-columns:1fr}.thumb iframe{transform:scale(.2)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div><img src="logo.svg" alt="SmartParking" width="281" height="56"><p class="muted" style="margin-top:12px">Referencia visual de la SPA · v1 · React + Vite + TypeScript</p></div>
+    <p class="eyebrow">Mockups estáticos · 2026</p>
+  </header>
+
+  <h2 class="sec" style="margin-top:0">Pantallas</h2>
+  <div class="grid">
+    <a class="card shot card-hover" href="01-login.html"><div class="thumb"><iframe src="01-login.html" title="Vista previa login" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>01 · Login <span class="tag">Público</span></h3><p class="small muted">Panel de marca y formulario con estado de error 401. RF1.</p></div></a>
+    <a class="card shot card-hover" href="02-cliente-reservas.html"><div class="thumb"><iframe src="02-cliente-reservas.html" title="Vista previa reservas" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>02 · Mis reservas <span class="tag">Cliente</span></h3><p class="small muted">Listado con chips de estado y acciones modificar / cancelar. RF4.</p></div></a>
+    <a class="card shot card-hover" href="03-cliente-vehiculos.html"><div class="thumb"><iframe src="03-cliente-vehiculos.html" title="Vista previa vehículos" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>03 · Mis vehículos <span class="tag">Cliente</span></h3><p class="small muted">Grilla con matrícula destacada y modal de alta/edición. RF3.</p></div></a>
+    <a class="card shot card-hover" href="04-nueva-reserva.html"><div class="thumb"><iframe src="04-nueva-reserva.html" title="Vista previa nueva reserva" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>04 · Nueva reserva <span class="tag">Cliente</span></h3><p class="small muted">Formulario con validación de solapamiento (HTTP 409). RF4.</p></div></a>
+    <a class="card shot card-hover" href="05-admin-reservas.html"><div class="thumb"><iframe src="05-admin-reservas.html" title="Vista previa admin reservas" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>05 · Reservas globales <span class="tag">Admin</span></h3><p class="small muted">KPIs, filtros cliente/estado/desde/hasta y tabla paginada. RF5.</p></div></a>
+    <a class="card shot card-hover" href="06-admin-clientes.html"><div class="thumb"><iframe src="06-admin-clientes.html" title="Vista previa admin clientes" loading="lazy" tabindex="-1"></iframe></div><div class="info"><h3>06 · Clientes <span class="tag">Admin</span></h3><p class="small muted">CRUD de clientes con drawer de alta. RF2.</p></div></a>
+  </div>
+
+  <h2 class="sec">Logo</h2>
+  <div class="logos">
+    <div class="card logo-box"><img src="logo.svg" alt="Logo completo" width="300" height="64"><span class="small muted">logo.svg · icono + wordmark</span></div>
+    <div class="card logo-box"><img src="logo-mark.svg" alt="Isotipo" width="72" height="72"><div class="row" style="justify-content:center"><img src="logo-mark.svg" alt="" width="32" height="32"><img src="logo-mark.svg" alt="" width="16" height="16"></div><span class="small muted">logo-mark.svg · 72 / 32 / 16 px</span></div>
+    <div class="card logo-box logo-dark"><img src="logo-mark-white.svg" alt="Isotipo blanco" width="72" height="72"><span class="small" style="color:#E6E9FF">logo-mark-white.svg</span></div>
+  </div>
+
+  <h2 class="sec">Color</h2>
+  <div class="scale" aria-hidden="true"><i style="background:#EFF4FF"></i><i style="background:#DCE7FE"></i><i style="background:#BDD0FD"></i><i style="background:#92B0FB"></i><i style="background:#5F89F6"></i><i style="background:#2563EB"></i><i style="background:#1D4FD0"></i><i style="background:#1E40A8"></i></div>
+  <div class="scale" aria-hidden="true"><i style="background:#F5F0FF"></i><i style="background:#EBE1FF"></i><i style="background:#D9C7FE"></i><i style="background:#C0A0FC"></i><i style="background:#A175F8"></i><i style="background:#7C3AED"></i><i style="background:#6527CF"></i><i style="background:#5320A8"></i></div>
+  <div class="sw" style="margin-top:20px">
+    <div><i style="background:var(--grad)"></i><span>Gradiente<small>#2563EB → #7C3AED</small></span></div>
+    <div><i style="background:#2563EB"></i><span>Primary 600<small>#2563EB</small></span></div>
+    <div><i style="background:#7C3AED"></i><span>Violet 600<small>#7C3AED</small></span></div>
+    <div><i style="background:#0F1325"></i><span>Texto<small>#0F1325</small></span></div>
+    <div><i style="background:#4A5169"></i><span>Texto 2<small>#4A5169</small></span></div>
+    <div><i style="background:#F7F8FC"></i><span>Fondo<small>#F7F8FC</small></span></div>
+    <div><i style="background:#E8F8EF"></i><span>Activa<small>#0C6E3E sobre #E8F8EF</small></span></div>
+    <div><i style="background:#F1F3F9"></i><span>Cancelada<small>#4A5169 sobre #F1F3F9</small></span></div>
+    <div><i style="background:#D1303B"></i><span>Peligro<small>#D1303B / #AD222C</small></span></div>
+  </div>
+
+  <h2 class="sec">Tipografía · Plus Jakarta Sans</h2>
+  <div class="card type">
+    <p style="font-size:40px;font-weight:800;letter-spacing:-.035em">Reservá tu lugar, sin vueltas.</p>
+    <p style="font-size:24px;font-weight:700;letter-spacing:-.02em">Mis reservas · 24 activas hoy</p>
+    <p style="font-size:17px;font-weight:600">Subtítulo 17/600 — Toyota Corolla, SBA 1234</p>
+    <p>Cuerpo 15/400 — El vehículo ya tiene una reserva activa en ese horario. Pesos disponibles: 400, 500, 600, 700, 800.</p>
+    <p class="small muted">Texto auxiliar 13.5/500</p>
+    <p class="eyebrow">Etiqueta 12/700 versalitas</p>
+    <div class="row" style="margin-top:20px;flex-wrap:wrap"><button class="btn btn-primary">Primario</button><button class="btn btn-secondary">Secundario</button><button class="btn btn-ghost">Ghost</button><button class="btn btn-danger">Peligro</button><span class="badge badge-activa">Activa</span><span class="badge badge-cancelada">Cancelada</span></div>
+  </div>
+</div>
+</body>
+</html>
