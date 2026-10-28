@@ -1,6 +1,6 @@
-# SmartParking – Arquitectura de Software (Parte 1)
+# SmartParking – Arquitectura de Software
 
-Este repositorio contiene el diseño arquitectónico del sistema SmartParking, desarrollado para la evaluación grupal de la asignatura: diagrama UML de componentes, escenarios de calidad y el registro de decisión arquitectónica ADR-01, con sus justificaciones. La Parte 2 implementará el diseño propuesto.
+Este repositorio contiene el diseño arquitectónico y la implementación del sistema SmartParking, desarrollado para la evaluación grupal de la asignatura: diagrama UML de componentes, escenarios de calidad y el registro de decisión arquitectónica ADR-01, con sus justificaciones. Primero se cierra el diseño y luego se implementa siguiendo esas decisiones.
 
 ## Contenido
 

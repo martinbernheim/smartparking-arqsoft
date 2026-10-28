@@ -37,7 +37,7 @@ Defaults menores (sin preguntar):
 - Vista de despliegue simple (Docker Compose) como figura opcional; no la pide la rúbrica.
 - Comunicación interna Identity↔API (`IUserAdmin`) protegida con token de servicio/rol ADMIN.
 
-Parte 2 (después): se implementa este diseño. Las decisiones de arriba ya están pensadas para codear.
+Implementación: una vez cerrado el diseño, se programa siguiendo estas decisiones.
 
 ## Modo de ejecución (pedido del usuario)
 Yo orquesto y reviso; la redacción la hacen subagentes `model: sonnet` con briefs cerrados (decisiones + convenciones de este plan). Después de cada entrega, reviso contra enunciado y rúbrica y pido correcciones puntuales. Sin agentes de exploración extra: el material ya está resumido acá.
@@ -100,7 +100,7 @@ Contexto, Alternativas (HTTP síncrono, cola async RabbitMQ, outbox+cola), Decis
 ## Justificación de cada decisión (para defender)
 1. **Identity como servicio separado**: el enunciado exige auth propio y usuarios en otra base; separado se ve la responsabilidad y escala solo. Táctica: Seguridad/Resistir/autenticar actores; Modificabilidad/aumentar cohesión.
 2. **Usuarios en MongoDB**: otra tecnología y servidor, separación evidente; ejemplo del curso. Se guarda hash de contraseña, nunca en Cliente.
-3. **Stack del curso**: visto en clase, justificable y reutilizable en la Parte 2.
+3. **Stack del curso**: visto en clase, justificable y reutilizable en la implementación.
 4. **RS256**: Identity firma con privada, API verifica con pública; la API no puede fabricar tokens. Táctica: Detectar ataques/verificar integridad de mensajes (JWT es herramienta).
 5. **JWT validado en middleware de la API**: firma, vigencia, emisor localmente (sin llamar a Identity en cada request → performance); luego rol/pertenencia. Táctica: autorizar actores.
 6. **"Mis reservas" desde el token**: sub == Cliente.identityUserId; nunca clienteId del navegador. Táctica: autorizar actores, limitar acceso.
