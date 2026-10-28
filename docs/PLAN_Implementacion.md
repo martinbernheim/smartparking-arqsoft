@@ -17,7 +17,7 @@ Construir un prototipo ejecutable con `docker compose up` que demuestre el dise�
 | Nginx + 2 réplicas API | MVP | `/auth`, `/api` |
 | Pruebas unitarias + integración + k6 | MVP | ver sección 6 |
 | Read Replica PostgreSQL (streaming) | **Opcional** (profile `replica`) | Por defecto `ISqlReplica` apunta a la primaria (`DATABASE_REPLICA_URL` = primaria). El código ya separa los dos clientes. |
-| Kibana | **Opcional** (profile `kibana`) | Solo consulta visual del audit trail; se puede consultar ES por curl. |
+| Kibana | **Opcional** (profile `observability`) | Solo consulta visual del audit trail; se puede consultar ES por curl. |
 | Web Client | **Mínimo** | **DECISIÓN ABIERTA D1**: Swagger UI + colección Postman (recomendado) vs SPA mínima. |
 | Refresh token, Outbox, rate limiting | Fuera de alcance | Mejoras futuras ya declaradas en el diseño. |
 
@@ -27,7 +27,7 @@ Construir un prototipo ejecutable con `docker compose up` que demuestre el dise�
 
 ```
 smartparking/
-├── docker-compose.yml          # perfiles: default, replica, kibana
+├── docker-compose.yml          # perfiles: default, replica, observability
 ├── .env.example                # variables compartidas de compose
 ├── README.md                   # H7: cómo ejecutar
 ├── contracts/                  # DECISIÓN D3: tipos DTO compartidos (paquete local)

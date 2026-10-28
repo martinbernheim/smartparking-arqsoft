@@ -69,3 +69,5 @@ Aceptado
 - Consistencia eventual: el evento puede tardar en aparecer en el log.
 - Infraestructura adicional que operar y monitorear (broker, colas durables).
 - Mayor latencia de registro respecto de la alternativa síncrona.
+
+Relacionado con: ADR-08, ADR-03
