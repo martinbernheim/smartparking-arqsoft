@@ -4,7 +4,10 @@ Este repositorio contiene el diseño arquitectónico y la implementación del si
 
 ## Contenido
 
-- `PLAN_SmartParking.md`: decisiones de diseño y sus justificaciones.
-- `diagramas/`: diagramas de componentes en PlantUML (`.puml`) y su exportación en PNG.
+- `docs/PLAN_SmartParking.md`: decisiones de diseño y sus justificaciones.
+- `docs/diagramas/`: diagramas de componentes en PlantUML (`.puml`) y su exportación en PNG.
 
 Elaborado con asistencia de IA (Claude), revisado por el equipo.
+
+- `docs/SmartParking_Parte1.md` / `.pdf`: documento de diseño (A1–A4).
+- `docs/PLAN_Implementacion.md`: plan de implementación por hitos.

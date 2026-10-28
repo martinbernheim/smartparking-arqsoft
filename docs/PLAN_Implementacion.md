@@ -218,21 +218,21 @@ Redes: `public` (solo nginx) y `internal` (resto). Healthchecks en cada dependen
 
 ---
 
-## 7. Decisiones abiertas para el usuario
+## 7. Decisiones (cerradas con el usuario, 2026-10-28)
 
-| # | Decisión | Opción recomendada | Por qué (1 línea) |
-|---|---|---|---|
-| D1 | **Web Client** | Swagger UI en cada servicio + colección Postman con el flujo completo | El diseño solo exige consumir contratos HTTPS; una SPA suma trabajo sin sumar a la arquitectura evaluada (alternativa: SPA mínima de 3 pantallas, si hay tiempo tras H6). |
-| D2 | **Librería de validación** | `zod` | Valida y a la vez infiere tipos TS, que se reutilizan como DTOs. |
-| D3 | **Contratos compartidos** | Paquete `contracts/` con npm workspaces (solo tipos) | Evita divergencia de DTOs entre servicios; duplicar es más simple pero se desincroniza. |
-| D4 | **Layout del monorepo y docs** | Mover diseño a `docs/` dentro del repo de código | Un solo repo con todo; si la entrega de Parte 1 ya está cerrada, dejar `PAC2/` intacto y crear el código en carpeta hermana. |
-| D5 | **Framework de test** | `vitest` (con `supertest`) | Soporta TS sin configuración extra y es rápido; `jest` si el curso/equipo ya lo usa. |
-| D6 | **Read Replica real vs opcional** | Opcional (perfil `replica`); por defecto réplica = primaria | El código ya separa `ISqlPrimary`/`ISqlReplica`; la replicación streaming consume tiempo de configuración y no cambia el diseño. Activarla solo si se quiere medirla en k6. |
-| D7 | **Prisma vs `pg`** | Mantener Prisma | Decidido en el diseño; el único costo es la migración SQL manual de EXCLUDE y mapear el error `23P01`, ambos acotados. Sin motivo para cambiar. |
-| D8 | **Cliente de Elasticsearch en Audit** | `@elastic/elasticsearch` (`helpers.bulk`/`index` con `_id`=eventId) como AuditWriter, Winston solo para log técnico | El diseño dice Winston + transport, pero `winston-elasticsearch` es poco mantenido y no controla `_id` ni errores para el ack; mantener el nombre `AuditWriter` y declarar el matiz. |
-| D9 | **Autenticación de `IUserAdmin` (S6)** | Reenviar el JWT del ADMIN que hace el alta | Cero secretos adicionales y la auditoría conserva quién creó el usuario; token de servicio solo si se necesitan altas sin ADMIN. |
-| D10 | **Prefijo `/api` y TLS en Nginx** | La API sirve bajo `/api` (sin reescritura) y Nginx en HTTP :8080 | Simplifica Nginx y Swagger; TLS/443 se documenta como despliegue productivo (autofirmado opcional). |
-| D11 | **Reparto del equipo (5 personas)** | P1 Identity (H1) · P2 API auth+Clientes (H2) · P3 Vehículos+Reservas+EXCLUDE (H3) · P4 Audit+RabbitMQ+ES (H4) · P5 compose+Nginx+caché+k6 (H0, H5, H6) · todos: tests de su módulo y README (H7) | Fronteras alineadas con los componentes del diseño; H0 y contratos primero y juntos para destrabar al resto. |
-| D12 | **Carga de claves RSA** | Par generado con script `openssl` y montado como volumen | Reproducible y evita regenerar la clave (y romper tokens/JWKS) en cada reinicio; autogeneración solo como fallback de desarrollo. |
+| # | Decisión | Resuelto |
+|---|---|---|
+| D1 | Web Client | **SPA mínima** (login, mis vehículos, mis reservas, vista admin con filtros) servida por Nginx en `/`. Swagger UI se mantiene para pruebas. |
+| D2 | Validación | `zod` |
+| D3 | Contratos compartidos | Paquete `contracts/` (npm workspaces, solo tipos) |
+| D4 | Layout | Mismo repo; diseño movido a `docs/`; servicios en la raíz |
+| D5 | Tests | `vitest` + `supertest` |
+| D6 | Read Replica | Opcional (perfil `replica`); por defecto réplica = primaria |
+| D7 | Acceso BD | Prisma (migración SQL manual para EXCLUDE, error `23P01` → 409) |
+| D8 | Escritura de auditoría | **Winston + `winston-elasticsearch`**, como en el diseño (coherencia con Figura 4) |
+| D9 | Auth de `IUserAdmin` | Reenviar el JWT del ADMIN |
+| D10 | Prefijo y TLS | API bajo `/api`; Nginx HTTP :8080 en local; TLS documentado para producción |
+| D11 | Implementación | Claude implementa por hitos con agentes; el equipo revisa cada hito y lo entiende para la defensa |
+| D12 | Claves RSA | Script `openssl` + volumen |
 
-Dependencias entre tareas del equipo: H0 + `contracts/` (todos) → H1 → H2 → {H3, H4 en paralelo} → H5 → H6 → H7.
+Orden: H0 + `contracts/` → H1 → H2 → {H3, H4} → H5 → H6 (incluye SPA) → H7.
