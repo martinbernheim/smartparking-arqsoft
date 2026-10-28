@@ -235,4 +235,10 @@ Redes: `public` (solo nginx) y `internal` (resto). Healthchecks en cada dependen
 | D11 | Implementación | Claude implementa por hitos con agentes; el equipo revisa cada hito y lo entiende para la defensa |
 | D12 | Claves RSA | Script `openssl` + volumen |
 
+| D13 | Runtime | Node 22 LTS (instalado localmente; imágenes `node:22-alpine`) |
+| D14 | SPA | React + Vite + TypeScript, servida por Nginx en `/`; diseño prolijo, responsive |
+| D15 | Identidad visual | Tipografía **Plus Jakarta Sans** (Google Fonts); paleta clara con acentos azul→violeta, tarjetas con bordes suaves, iconos lineales; logo SVG propio: "P" de estacionamiento estilizada con pin de ubicación |
+| D16 | Datos demo | Seed: 1 ADMIN + 2 clientes con usuario, vehículos y reservas; credenciales en `.env.example` |
+| D17 | Revisión | Pausa para revisión del equipo cada 2 hitos: H0+H1, H2+H3, H4+H5, H6+H7 |
+
 Orden: H0 + `contracts/` → H1 → H2 → {H3, H4} → H5 → H6 (incluye SPA) → H7.
