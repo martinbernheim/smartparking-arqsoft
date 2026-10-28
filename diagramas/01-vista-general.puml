@@ -1,0 +1,125 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 20
+skinparam ranksep 30
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+skinparam nodesep 45
+
+title Figura 1: SmartParking – Vista de Componentes y Conectores (general)
+
+component "Web Client\n(SPA)" as Web <<webapp>>
+interface "IEntradaPublica\n(HTTPS :443)" as IEntry
+component "Nginx\n/auth -> Identity\n/api -> API (N instancias)" as Nginx <<reverse proxy / load balancer>>
+
+component "Identity Service\nNode/Express + jsonwebtoken" as Identity <<process>>
+interface "IAuthApi" as IAuthApi
+interface "IUserAdmin" as IUserAdmin
+interface "IJwks" as IJwks
+
+component "SmartParking API\nNode/Express + TypeScript\n(N instancias)" as API <<process>>
+interface "ISmartParkingApi" as ISPApi
+
+component "RabbitMQ\nexchange smartparking.events (topic)\ncola durable audit-log" as MQ <<broker>>
+interface "IEventBus" as IEventBus
+
+component "Audit Log Service\nNode + Winston" as Audit <<process>>
+
+package "Persistencia de identidad" {
+  database "Identity DB\nMongoDB" as IdentityDB <<datastore>>
+}
+interface "IUserStore" as IUserStore
+
+package "Persistencia operacional" {
+  database "Operational DB\nPostgreSQL primary" as OpDB <<datastore>>
+  database "Read Replica\nPostgreSQL" as Replica <<datastore>>
+  database "Redis" as Redis <<cache>>
+}
+interface "ISqlPrimary\n(escrituras)" as ISqlPrimary
+interface "ISqlReplica\n(lecturas)" as ISqlReplica
+interface "ICache" as ICache
+
+package "Persistencia de auditoría" {
+  database "Elasticsearch\nindex audit-events" as ES <<datastore>>
+  component "Kibana\n(opcional)" as Kibana <<webapp>>
+}
+interface "IAuditStore" as IAuditStore
+
+Identity -up- IAuthApi
+API -up- ISPApi
+MQ -left- IEventBus
+Identity -right- IJwks
+Identity -right---- IUserAdmin
+Identity -down- IUserStore
+IdentityDB -up- IUserStore
+API -down- ISqlPrimary
+API -down- ISqlReplica
+API -down- ICache
+OpDB -up- ISqlPrimary
+Replica -up- ISqlReplica
+Redis -up- ICache
+ES -up- IAuditStore
+
+Web .down.> IEntry : HTTPS/REST (Bearer JWT)
+IEntry -down- Nginx
+Nginx .down.> IAuthApi : HTTP (/auth)
+Nginx .down.> ISPApi : HTTP (/api)
+API .left.> IJwks : HTTPS/REST (clave pública)
+API .left.> IUserAdmin : HTTPS/REST (alta Cliente)
+Identity .down.> IUserStore : MongoDB wire
+API .down.> ISqlPrimary : SQL
+API .down.> ISqlReplica : SQL
+API .down.> ICache : Redis
+Replica .left.> ISqlPrimary : replicación
+API .right.> IEventBus : AMQP (publish)
+Audit .up.> IEventBus : AMQP (subscribe)
+Audit .down.> IAuditStore : HTTP (bulk index)
+Kibana .down.> IAuditStore : HTTP (consulta)
+
+Identity -[hidden]right- API
+Web -[hidden]down- Nginx
+ISqlPrimary -[hidden]right- ISqlReplica
+ISqlReplica -[hidden]right- ICache
+MQ -[hidden]down- Audit
+
+note right of API
+  Vínculo de identidad:
+  JWT.sub == Cliente.identityUserId.
+  JWT verificado en el middleware de la API
+  (firma RS256, exp, iss); permisos por
+  rol/pertenencia en la API, no en Nginx.
+end note
+note bottom of MQ
+  EventoAuditoriaDTO {eventId, tipo, entidad,
+  entidadId, userId, fechaHora}
+end note
+note bottom of OpDB
+  Clientes, Vehiculos, Reservas. Sin contraseñas.
+  EXCLUDE: no solapamiento de reservas ACTIVAS
+end note
+note bottom of IdentityDB
+  Usuarios, passwordHash, roles.
+  Independiente de la BD de negocio.
+end note
+
+legend bottom
+  **Notación**
+  Círculo (lollipop) = interfaz provista;  línea punteada con flecha = interfaz requerida
+  Etiqueta en el conector = protocolo (HTTPS/REST, AMQP, SQL, MongoDB wire, Redis, HTTP)
+  Colores: azul = servicio, gris = BD, rojo claro = caché, naranja = broker
+  Estructura interna: ver Figuras 2 (API), 3 (Identity) y 4 (Audit Log)
+end legend
+@enduml

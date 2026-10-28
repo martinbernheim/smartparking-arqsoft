@@ -1,0 +1,58 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 20
+skinparam ranksep 30
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+
+title Figura 3: Identity Service – estructura interna
+
+component "Identity Service\nNode/Express + jsonwebtoken" as Identity <<process>> {
+  component "AuthController" as AuthCtl <<module>>
+  component "UserAdminController" as AdminCtl <<module>>
+  component "CredentialValidator" as CredVal <<module>>
+  component "PasswordHasher\n(bcrypt)" as Hasher <<module>>
+  component "TokenIssuer\nRS256, clave privada\nclaims: sub=identityUserId,\nroles, exp=1h, iss" as Issuer <<module>>
+  component "UserRepository\n(Mongoose)" as UserRepo <<module>>
+}
+interface "IAuthApi\nPOST /auth/login\nLoginRequest -> AuthResponse" as IAuthApi
+interface "IJwks\nGET /.well-known/jwks.json\n(clave pública RS256)" as IJwks
+interface "IUserAdmin\nPOST /users\n(interna, solo ADMIN)" as IUserAdmin
+interface "IUserStore" as IUserStore
+package "Persistencia de identidad" {
+  database "Identity DB\nMongoDB\n(users: id, email, passwordHash,\nroles[ADMIN|CLIENTE])" as IdentityDB <<datastore>>
+}
+
+IAuthApi -down- AuthCtl
+IJwks -down- AuthCtl
+IUserAdmin -down- AdminCtl
+AuthCtl ..> CredVal : usa
+AuthCtl ..> Issuer : usa
+CredVal ..> Hasher : usa
+CredVal ..> UserRepo : usa
+AdminCtl ..> Hasher : usa
+AdminCtl ..> UserRepo : usa
+UserRepo .down.> IUserStore : MongoDB wire
+IdentityDB -up- IUserStore
+
+note right of IdentityDB
+  Usuarios, passwordHash, roles.
+  Independiente de la BD de negocio.
+end note
+legend bottom
+  Círculo = interfaz provista; punteada con flecha = requerida/dependencia
+end legend
+@enduml

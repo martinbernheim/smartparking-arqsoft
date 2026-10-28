@@ -1,0 +1,41 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 20
+skinparam ranksep 30
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+
+title Figura 4: Audit Log Service – estructura interna
+
+component "Audit Log Service\nNode + Winston" as Audit <<process>> {
+  component "AuditConsumer\n(suscriptor cola audit-log)" as Consumer <<module>>
+  component "AuditWriter\n(Winston + transport Elasticsearch)" as Writer <<module>>
+}
+interface "IEventBus\nexchange smartparking.events" as IEventBus
+interface "IAuditStore\nindex audit-events" as IAuditStore
+component "RabbitMQ" as MQ <<broker>>
+package "Persistencia de auditoría" {
+  database "Elasticsearch\nindex audit-events (append-only)" as ES <<datastore>>
+}
+MQ -up- IEventBus
+ES -down- IAuditStore
+Consumer ..> Writer : usa
+Consumer .up.> IEventBus : AMQP (subscribe audit-log)
+Writer .down.> IAuditStore : HTTP (bulk index)
+legend bottom
+  Círculo = interfaz provista; punteada con flecha = requerida/dependencia
+end legend
+@enduml

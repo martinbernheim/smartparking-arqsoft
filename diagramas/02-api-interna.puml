@@ -1,0 +1,105 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 20
+skinparam ranksep 30
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+left to right direction
+skinparam ranksep 12
+skinparam nodesep 12
+
+title Figura 2: SmartParking API – estructura interna
+
+component "SmartParking API\nNode/Express + TypeScript (N instancias)" as API <<process>> {
+  portin " " as pIn
+  portout " " as pJwks
+  portout " " as pAdmin
+  portout " " as pSql
+  portout " " as pCache
+  portout " " as pBus
+
+  component "JwtAuthMiddleware\nverifica firma RS256, exp, iss\n(clave pública cacheada)" as JwtMw <<module>>
+  component "Clientes\nroutes-controller-\nservice-repository" as Clientes <<module>>
+  component "Vehiculos\nroutes-controller-\nservice-repository" as Vehiculos <<module>>
+  component "Reservas\nroutes-controller-\nservice-repository\n(valida no solapamiento, 409)" as Reservas <<module>>
+  component "AuthorizationGuard\nrequireRole(ADMIN)\nRF1 / RF5" as Guard <<module>>
+  component "OwnershipResolver\nsub -> Cliente.identityUserId\n-> clienteId\nRF2 / RF3 / RF4" as Owner <<module>>
+  component "Repositories\n(Prisma)" as Repos <<module>>
+  component "CacheService\nTTL 30 s + invalidación" as CacheSvc <<module>>
+  interface "IAuditEventPublisher\n(puerto interno)" as IAuditPort
+  component "RabbitMqAuditPublisher\npublisher confirms + retry" as Publisher <<adapter>>
+}
+
+interface "ISmartParkingApi" as ISPApi
+interface "IJwks" as IJwks
+interface "IUserAdmin" as IUserAdmin
+interface "ISqlPrimary" as ISqlPrimary
+interface "ISqlReplica" as ISqlReplica
+interface "ICache" as ICache
+interface "IEventBus" as IEventBus
+
+ISPApi -- pIn
+pIn ..> JwtMw : request
+JwtMw ..> Guard : req.user\n(sub, roles)
+Clientes ..> Guard : rol ADMIN
+Vehiculos ..> Guard : rol
+Reservas ..> Guard : rol
+Vehiculos ..> Owner : pertenencia
+Reservas ..> Owner : pertenencia
+Owner ..> Repos : busca Cliente\npor identityUserId
+Clientes ..> Repos : usa
+Vehiculos ..> Repos : usa
+Reservas ..> Repos : usa
+Reservas ..> CacheSvc : usa
+Clientes ..> IAuditPort : publica evento
+Vehiculos ..> IAuditPort : publica evento
+Reservas ..> IAuditPort : publica evento
+IAuditPort -- Publisher
+
+JwtMw ..> pJwks
+Clientes ..> pAdmin
+Repos ..> pSql
+CacheSvc ..> pCache
+Publisher ..> pBus
+
+pJwks ..> IJwks : HTTPS/REST
+pAdmin ..> IUserAdmin : HTTPS/REST\n(alta de Cliente, ADMIN)
+pSql ..> ISqlPrimary : SQL (escrituras)
+pSql ..> ISqlReplica : SQL (lecturas)
+pCache ..> ICache : Redis
+pBus ..> IEventBus : AMQP (publish)
+
+JwtMw -[hidden]down- Clientes
+Clientes -[hidden]down- Vehiculos
+Vehiculos -[hidden]down- Reservas
+
+note bottom of Owner
+  JWT.sub == Cliente.identityUserId;
+  nunca se confía en clienteId del request
+end note
+note top of JwtMw
+  Aquí se verifican firma RS256, vigencia (exp) e issuer;
+  permisos en AuthorizationGuard/OwnershipResolver
+end note
+
+legend bottom
+  **Notación**
+  Círculo = interfaz provista; punteada con flecha = requerida/dependencia
+  Puertos (cuadrados) en el borde = interfaces externas del componente
+  JwtAuthMiddleware, AuthorizationGuard y OwnershipResolver forman el módulo transversal de autenticación/autorización
+  <<adapter>> = implementa el puerto IAuditEventPublisher
+end legend
+@enduml
