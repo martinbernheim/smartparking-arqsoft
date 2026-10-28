@@ -1,0 +1,180 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 25
+skinparam ranksep 40
+
+title Figura 1: SmartParking – Vista de Componentes y Conectores
+
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+
+' ============ INTERFACES ============
+interface "IEntradaPublica\n(HTTPS :443)" as IEntry
+interface "IAuthApi\nPOST /auth/login\nLoginRequest -> AuthResponse" as IAuthApi
+interface "IUserAdmin\nPOST /users\n(interna, solo ADMIN)" as IUserAdmin
+interface "IJwks\nGET /.well-known/jwks.json\n(clave pública RS256)" as IJwks
+interface "ISmartParkingApi\n/clientes /vehiculos /reservas\n/reservas/mias\n/admin/reservas?cliente&estado&desde&hasta" as ISPApi
+interface "IUserStore" as IUserStore
+interface "IAuditEventPublisher\n(puerto interno)" as IAuditPort
+interface "ISqlPrimary\n(escrituras)" as ISqlPrimary
+interface "ISqlReplica\n(lecturas)" as ISqlReplica
+interface "ICache" as ICache
+interface "IEventBus\nexchange smartparking.events" as IEventBus
+interface "IAuditStore\nindex audit-events" as IAuditStore
+
+' ============ CLIENTE ============
+component "Web Client\n(SPA)" as Web <<webapp>>
+
+' ============ ENTRADA ============
+component "Nginx\n/auth -> Identity\n/api -> API (N instancias)" as Nginx <<reverse proxy / load balancer>>
+Nginx -- IEntry
+
+' ============ IDENTITY ============
+component "Identity Service\nNode/Express + jsonwebtoken" as Identity <<process>> {
+  component "AuthController" as AuthCtl <<module>>
+  component "UserAdminController" as AdminCtl <<module>>
+  component "CredentialValidator" as CredVal <<module>>
+  component "PasswordHasher\n(bcrypt)" as Hasher <<module>>
+  component "TokenIssuer\nRS256, clave privada\nclaims: sub=identityUserId,\nroles, exp=1h, iss" as Issuer <<module>>
+  component "UserRepository\n(Mongoose)" as UserRepo <<module>>
+}
+AuthCtl -- IAuthApi
+AuthCtl -- IJwks
+AdminCtl -- IUserAdmin
+AuthCtl ..> CredVal : usa
+AuthCtl ..> Issuer : usa
+CredVal ..> Hasher : usa
+CredVal ..> UserRepo : usa
+AdminCtl ..> Hasher : usa
+AdminCtl ..> UserRepo : usa
+
+package "Persistencia de identidad" {
+  database "Identity DB\nMongoDB\n(users: id, email, passwordHash, roles[ADMIN|CLIENTE])" as IdentityDB <<datastore>>
+}
+IdentityDB -- IUserStore
+UserRepo ..> IUserStore : MongoDB wire
+note right of IdentityDB
+  Usuarios, passwordHash, roles.
+  Independiente de la BD de negocio.
+end note
+
+' ============ SMARTPARKING API ============
+component "SmartParking API\nNode/Express + TypeScript\n(N instancias)" as API <<process>> {
+  component "Módulo transversal de autenticación/autorización" as AuthMod <<module>> {
+    component "JwtAuthMiddleware\nverifica firma RS256, exp, iss\n(local, clave pública cacheada)" as JwtMw <<module>>
+    component "AuthorizationGuard\nrequireRole(ADMIN)\nRF1 / RF5" as Guard <<module>>
+    component "OwnershipResolver\nsub -> Cliente.identityUserId -> clienteId\nRF2 / RF3 / RF4" as Owner <<module>>
+  }
+  component "Clientes\nroutes-controller-service-repository" as Clientes <<module>>
+  component "Vehiculos\nroutes-controller-service-repository" as Vehiculos <<module>>
+  component "Reservas\nroutes-controller-service-repository\n(valida no solapamiento, 409)" as Reservas <<module>>
+  component "Repositories\n(Prisma)" as Repos <<module>>
+  component "CacheService\nTTL 30 s + invalidación" as CacheSvc <<module>>
+  component "RabbitMqAuditPublisher\npublisher confirms + retry" as Publisher <<adapter>>
+}
+API -- ISPApi
+Publisher -- IAuditPort
+
+JwtMw ..> Guard : req.user\n(sub, roles)
+Owner ..> Repos : busca Cliente\npor identityUserId
+Clientes ..> Guard : rol ADMIN
+Vehiculos ..> Guard : rol
+Vehiculos ..> Owner : pertenencia
+Reservas ..> Guard : rol
+Reservas ..> Owner : pertenencia
+Clientes ..> Repos : usa
+Vehiculos ..> Repos : usa
+Reservas ..> Repos : usa
+Reservas ..> CacheSvc : usa
+Clientes ..> IAuditPort : publica evento
+Vehiculos ..> IAuditPort : publica evento
+Reservas ..> IAuditPort : publica evento
+
+note left of Owner
+  JWT.sub == Cliente.identityUserId;
+  nunca se confía en clienteId del request
+end note
+note left of JwtMw
+  Aquí se verifican firma RS256, vigencia (exp)
+  e issuer; permisos en
+  AuthorizationGuard/OwnershipResolver
+end note
+
+' ============ PERSISTENCIA OPERACIONAL ============
+package "Persistencia operacional" {
+  database "Operational DB\nPostgreSQL primary" as OpDB <<datastore>>
+  database "Read Replica\nPostgreSQL" as Replica <<datastore>>
+  database "Redis" as Redis <<cache>>
+}
+OpDB -- ISqlPrimary
+Replica -- ISqlReplica
+Redis -- ICache
+Replica ..> ISqlPrimary : replicación (SQL/WAL)
+Repos ..> ISqlPrimary : SQL (escrituras)
+Repos ..> ISqlReplica : SQL (lecturas)
+CacheSvc ..> ICache : Redis
+note bottom of OpDB
+  Clientes, Vehiculos, Reservas. Sin contraseñas.
+  EXCLUDE: no solapamiento de reservas
+  ACTIVAS por vehículo
+end note
+
+' ============ BROKER ============
+component "RabbitMQ\nexchange smartparking.events (topic, pub/sub)\ncola durable audit-log" as MQ <<broker>>
+MQ -- IEventBus
+note right of MQ
+  Toda alta/modificación/cancelación exitosa publica
+  EventoAuditoriaDTO {eventId, tipo, entidad,
+  entidadId, userId, fechaHora}
+end note
+
+' ============ AUDIT LOG ============
+component "Audit Log Service\nNode + Winston" as Audit <<process>> {
+  component "AuditConsumer\n(suscriptor cola audit-log)" as Consumer <<module>>
+  component "AuditWriter\n(Winston + transport Elasticsearch)" as Writer <<module>>
+}
+Consumer ..> Writer : usa
+
+package "Persistencia de auditoría" {
+  database "Elasticsearch\nindex audit-events (append-only)" as ES <<datastore>>
+  component "Kibana\n(opcional, consulta)" as Kibana <<webapp>>
+}
+ES -- IAuditStore
+Writer ..> IAuditStore : HTTP (bulk index)
+Kibana ..> IAuditStore : HTTP (consulta)
+
+' ============ CONEXIONES ENTRE COMPONENTES ============
+Web ..> IEntry : HTTPS/REST\n(/auth, /api, Bearer JWT)
+Nginx ..> IAuthApi : HTTP (/auth)
+Nginx ..> ISPApi : HTTP (/api, balanceo)
+JwtMw ..> IJwks : HTTPS/REST\n(obtiene clave pública, cacheada)
+Clientes ..> IUserAdmin : HTTPS/REST\n(alta de Cliente, ADMIN)
+Publisher ..> IEventBus : AMQP (publish)
+Consumer ..> IEventBus : AMQP (subscribe audit-log)
+
+legend right
+  **Notación**
+  Círculo (lollipop) = interfaz provista
+  Línea punteada con flecha = interfaz requerida / dependencia
+  Etiqueta en el conector = protocolo (HTTPS/REST, AMQP, SQL, MongoDB wire, Redis, HTTP bulk index)
+  <<datastore>> = persistencia (BD independientes: identidad, operacional, auditoría)
+  <<cache>> = caché Redis
+  <<process>> = proceso/servicio; <<module>> = subcomponente interno
+  <<adapter>> = implementación del puerto IAuditEventPublisher
+  Colores: azul = servicio, verde = módulo interno, gris = BD, rojo claro = caché, naranja = broker
+end legend
+
+@enduml
