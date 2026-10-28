@@ -63,7 +63,6 @@ API -up- ISPApi
 MQ -left- IEventBus
 Identity -right- IJwks
 Identity -right---- IUserAdmin
-Identity -down- IUserStore
 IdentityDB -up- IUserStore
 API -down- ISqlPrimary
 API -down- ISqlReplica
