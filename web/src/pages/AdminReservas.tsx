@@ -24,7 +24,7 @@ function toApiFiltro(f: FiltroAdmin, page: number): ReservaFiltro {
 }
 
 const rankingColumns: Column<ResumenCliente>[] = [
-  { key: 'cli', header: 'Cliente', cell: (c) => <strong>{c.nombre ?? c.email ?? c.clienteId.slice(0, 8)}</strong> },
+  { key: 'cli', header: 'Cliente', cell: (c) => <strong>{c.nombre ?? c.email ?? `Cliente ${c.clienteId.slice(0, 8)}`}</strong> },
   { key: 'act', header: 'Activas', cell: (c) => c.reservasActivas },
   { key: 'can', header: 'Canceladas', cell: (c) => c.reservasCanceladas },
   { key: 'hrs', header: 'Horas reservadas', cell: (c) => c.totalHorasReservadas },

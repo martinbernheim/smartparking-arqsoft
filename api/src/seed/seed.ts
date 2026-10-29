@@ -1,5 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { Env } from '../config/env';
+import { randomUUID } from 'node:crypto';
+import type { IAuditEventPublisher, TipoAuditoria } from '../audit/audit-event-publisher';
 import { logger } from '../logger';
 
 type SeedEnv = Pick<Env, 'SEED_CLIENT1_EMAIL' | 'SEED_CLIENT1_ID' | 'SEED_CLIENT2_EMAIL' | 'SEED_CLIENT2_ID'>;
@@ -8,7 +10,25 @@ type SeedEnv = Pick<Env, 'SEED_CLIENT1_EMAIL' | 'SEED_CLIENT1_ID' | 'SEED_CLIENT
 const d = (s: string) => new Date(s);
 
 // Datos demo (D16). identityUserId = SEED_CLIENTn_ID, los mismos ids que usa Identity para sus usuarios demo.
-export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
+// Publica (y espera) un evento de auditoría para que el modelo de lectura CQRS conozca los datos sembrados.
+// Solo se llama al CREAR la entidad (idempotencia). Un fallo de entrega nunca hace fallar el seed.
+export const SEED_USER_ID = 'seed';
+
+export async function seed(prisma: PrismaClient, env: SeedEnv, audit?: IAuditEventPublisher): Promise<void> {
+  const emitir = async (
+    tipo: TipoAuditoria,
+    entidad: 'Cliente' | 'Vehiculo' | 'Reserva',
+    entidadId: string,
+    datos: Record<string, unknown>,
+  ) => {
+    if (!audit) return;
+    try {
+      await audit.publicar({ eventId: randomUUID(), tipo, entidad, entidadId, userId: SEED_USER_ID, fechaHora: new Date().toISOString(), datos });
+    } catch (e) {
+      logger.warn('Seed: no se pudo publicar el evento de auditoría', { entidad, entidadId, reason: (e as Error)?.message });
+    }
+  };
+
   const clientes = [
     {
       id: '00000000-0000-4000-8000-0000000000c1',
@@ -47,24 +67,33 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
       logger.warn('Seed: sin SEED_CLIENTn_ID, se omite el cliente', { email: c.email });
       continue;
     }
+    const clienteExistia = Boolean(await prisma.cliente.findUnique({ where: { id: c.id }, select: { id: true } }));
     await prisma.cliente.upsert({
       where: { id: c.id },
       update: {},
       create: { id: c.id, nombre: c.nombre, email: c.email, telefono: c.telefono, identityUserId: c.identityUserId },
     });
+    if (!clienteExistia) {
+      await emitir('CREAR', 'Cliente', c.id, { nombre: c.nombre, email: c.email, identityUserId: c.identityUserId });
+    }
     for (const v of c.vehiculos) {
+      const vehiculoExistia = Boolean(await prisma.vehiculo.findUnique({ where: { id: v.id }, select: { id: true } }));
       await prisma.vehiculo.upsert({
         where: { id: v.id },
         // update: corrige marca/modelo de vehículos ya sembrados (los volúmenes se conservan)
         update: { matricula: v.matricula, marca: v.marca, modelo: v.modelo },
         create: { ...v, clienteId: c.id },
       });
+      if (!vehiculoExistia) {
+        await emitir('CREAR', 'Vehiculo', v.id, { clienteId: c.id, matricula: v.matricula, marca: v.marca, modelo: v.modelo });
+      }
     }
   }
 
   for (const r of reservas) {
     const cliente = clientes[r.c];
     if (!cliente.identityUserId) continue;
+    const reservaExistia = Boolean(await prisma.reserva.findUnique({ where: { id: r.id }, select: { id: true } }));
     await prisma.reserva.upsert({
       where: { id: r.id },
       update: {},
@@ -77,6 +106,16 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
         estado: r.estado,
       },
     });
+    if (!reservaExistia) {
+      // El proyector deriva CANCELADA de datos.estado, por lo que basta un CREAR con el estado final.
+      await emitir('CREAR', 'Reserva', r.id, {
+        clienteId: cliente.id,
+        vehiculoId: vehiculoId(r.v),
+        inicio: d(r.inicio).toISOString(),
+        fin: d(r.fin).toISOString(),
+        estado: r.estado,
+      });
+    }
   }
   logger.info('Seed aplicado');
 }

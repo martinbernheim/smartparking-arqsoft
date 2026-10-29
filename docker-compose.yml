@@ -73,8 +73,8 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
-    # nombre de nodo estable (los datos dependen del hostname) y reinicio ante la carrera
-    # de permisos de .erlang.cookie que ocurre a veces con un volumen nuevo
+    # hostname fijo: los datos de mnesia dependen del nombre de nodo.
+    # Solo se persiste mnesia (no .erlang.cookie), lo que evita el error eacces con volúmenes nuevos.
     hostname: rabbitmq
     restart: unless-stopped
     environment:
@@ -83,7 +83,7 @@ services:
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_UI_PORT:-15672}:15672"
-    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    volumes: [rabbitmq-data:/var/lib/rabbitmq/mnesia]
     networks: [internal]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
@@ -183,6 +183,7 @@ services:
     restart: "no"
     depends_on:
       postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
     networks: [internal]
 
   # API: 2 réplicas detrás de Nginx (balanceo por DNS round-robin de Docker). Sin puerto publicado:
