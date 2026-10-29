@@ -1,0 +1,64 @@
+/* Estilos propios de la SPA (sobre tokens.css del diseno). */
+.auth{display:grid;grid-template-columns:1.05fr 1fr;min-height:100vh}
+.brand-panel{position:relative;overflow:hidden;color:#fff;background:linear-gradient(145deg,#1D4FD0 0%,#4B3FE0 48%,#7C3AED 100%);padding:56px 64px;display:flex;flex-direction:column;justify-content:space-between}
+.brand-panel::before,.brand-panel::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.08)}
+.brand-panel::before{width:520px;height:520px;right:-180px;top:-160px}
+.brand-panel::after{width:380px;height:380px;left:-140px;bottom:-140px;background:rgba(255,255,255,.06)}
+.brand-panel>*{position:relative;z-index:1}
+.bp-logo{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:800;letter-spacing:-.03em}
+.bp-logo img{width:44px;height:44px}.bp-logo span span{font-weight:500}
+.bp-body h2{font-size:42px;line-height:1.1;letter-spacing:-.035em;font-weight:800;max-width:460px}
+.bp-body p{margin-top:16px;font-size:17px;max-width:420px;color:#E6E9FF}
+.bp-list{list-style:none;padding:0;margin:32px 0 0;display:grid;gap:14px}
+.bp-list li{display:flex;gap:12px;align-items:center;font-weight:600;font-size:15px}
+.bp-list .ck{width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,.16);display:grid;place-items:center}
+.bp-foot{font-size:13px;color:#D5D9FF}
+.form-side{display:flex;align-items:center;justify-content:center;padding:40px 24px;background:var(--surface)}
+.login{width:100%;max-width:400px}
+.login h1{font-size:30px;letter-spacing:-.03em}
+.login .stack>*+*{margin-top:18px}
+.mobile-logo{display:none;margin-bottom:28px}
+.demo{margin-top:28px;padding-top:20px;border-top:1px solid var(--border);font-size:var(--t-sm);color:var(--text-2);overflow-wrap:anywhere}
+@media (max-width:860px){
+  .auth{grid-template-columns:1fr}.brand-panel{display:none}
+  .mobile-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.03em}
+  .mobile-logo img{width:40px;height:40px}
+  .form-side{align-items:flex-start;padding-top:48px}
+}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--s-6);align-items:start}
+.summary dl{margin:0;display:grid;gap:14px}.summary dt{font-size:var(--t-xs);color:var(--text-3);font-weight:600}.summary dd{margin:2px 0 0;font-weight:700}
+@media (max-width:1000px){.split{grid-template-columns:1fr}}
+
+.filters{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:var(--s-4);align-items:end;margin-bottom:var(--s-5)}
+.filters .full-row{grid-column:1/-1}
+@media (max-width:1100px){.filters{grid-template-columns:1fr 1fr}.filters .btns{grid-column:1/-1}}
+@media (max-width:560px){.filters{grid-template-columns:1fr}}
+.table .plate{min-width:0}
+
+/* Acciones de tabla compactas: sin desborde a 1440px */
+.row-actions{display:inline-flex;gap:6px;justify-content:flex-end}
+.table td.actions,.table th.actions{padding-left:12px;padding-right:20px;width:1%}
+.table th,.table td{padding-left:16px;padding-right:16px}
+
+/* Esqueletos de carga */
+.skeleton{display:block;background:linear-gradient(90deg,var(--n-50) 25%,var(--n-100) 50%,var(--n-50) 75%);background-size:200% 100%;animation:sk 1.3s infinite linear}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skeleton{animation:none}}
+
+.dropdown button{color:var(--text)}
+.user-btn .badge-role{height:18px;font-size:10px;padding:0 7px}
+.modal-head h2{font-size:var(--t-lg)}
+.page-head .btn{flex:none}
+@media (max-width:640px){
+  .main{padding:var(--s-5) var(--s-4)}
+  .toasts{right:12px;left:12px;bottom:12px}
+  .toast{width:100%}
+  .login h1{font-size:26px}
+  .overlay.drawer-wrap{align-items:stretch}
+  .overlay.drawer-wrap>div{max-width:100%!important}
+}
+
+/* Evita que tablas anchas ensanchen la pagina en mobile */
+.main{min-width:0}
+@media (max-width:860px){.shell{grid-template-columns:minmax(0,1fr)}}
