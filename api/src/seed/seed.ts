@@ -17,7 +17,7 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
       telefono: '099 111 222',
       identityUserId: env.SEED_CLIENT1_ID,
       vehiculos: [
-        { id: '00000000-0000-4000-8000-0000000000a1', matricula: 'SBA 1234', marca: 'Toyota', modelo: 'Corolla' },
+        { id: '00000000-0000-4000-8000-0000000000a1', matricula: 'SBA 1234', marca: 'Volkswagen', modelo: 'Polo' },
         { id: '00000000-0000-4000-8000-0000000000a2', matricula: 'SAB 4321', marca: 'Volkswagen', modelo: 'Gol' },
       ],
     },
@@ -27,7 +27,7 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
       email: env.SEED_CLIENT2_EMAIL ?? 'cliente2@smartparking.local',
       telefono: '098 333 444',
       identityUserId: env.SEED_CLIENT2_ID,
-      vehiculos: [{ id: '00000000-0000-4000-8000-0000000000a3', matricula: 'SCD 5678', marca: 'Chevrolet', modelo: 'Onix' }],
+      vehiculos: [{ id: '00000000-0000-4000-8000-0000000000a3', matricula: 'SCD 5678', marca: 'Volkswagen', modelo: 'T-Cross' }],
     },
   ];
 
@@ -55,7 +55,8 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
     for (const v of c.vehiculos) {
       await prisma.vehiculo.upsert({
         where: { id: v.id },
-        update: {},
+        // update: corrige marca/modelo de vehículos ya sembrados (los volúmenes se conservan)
+        update: { matricula: v.matricula, marca: v.marca, modelo: v.modelo },
         create: { ...v, clienteId: c.id },
       });
     }

@@ -143,7 +143,7 @@ describe('GET /api/admin/reservas (RF5)', () => {
 describe('Vehículos (RF2) y auditoría', () => {
   it('CLIENTE crea vehículo propio: el clienteId del body se ignora; matrícula se normaliza', async () => {
     const res = await request(w.app).post('/api/vehiculos').set(bearer(c1.token))
-      .send({ matricula: ' sbb  1111 ', marca: 'Toyota', clienteId: c2.cliente.id });
+      .send({ matricula: ' sbb  1111 ', marca: 'Volkswagen', clienteId: c2.cliente.id });
     expect(res.status).toBe(201);
     expect(res.body.clienteId).toBe(c1.cliente.id);
     expect(res.body.matricula).toBe('SBB 1111');

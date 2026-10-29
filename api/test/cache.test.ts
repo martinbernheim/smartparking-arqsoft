@@ -84,6 +84,29 @@ describe('Caché en consultas de reservas (X-Cache)', () => {
     expect(r4.body[0].estado).toBe('CANCELADA');
   });
 
+  it('eliminar vehículo/cliente (borra reservas canceladas) invalida la caché', async () => {
+    const creada = await crear(c1.token, c1.vehiculo.id, 10);
+    await request(w.app).post(`/api/reservas/${creada.body.id}/cancelar`).set(bearer(c1.token));
+    await mias(c1.token);
+    expect((await mias(c1.token)).headers['x-cache']).toBe('HIT');
+    // el mock en memoria no cascada, pero el servicio debe invalidar igual
+    const del = await request(w.app).delete(`/api/vehiculos/${c1.vehiculo.id}`).set(bearer(c1.token));
+    expect(del.status).toBe(204);
+    expect((await mias(c1.token)).headers['x-cache']).toBe('MISS');
+
+    await mias(c2.token);
+    await admin();
+    expect((await admin()).headers['x-cache']).toBe('HIT');
+    await request(w.app).delete(`/api/clientes/${c2.cliente.id}`).set(bearer(w.adminToken));
+    expect((await admin()).headers['x-cache']).toBe('MISS');
+  });
+
+  it('los eventos de reserva incluyen datos (snapshot) para el modelo de lectura', async () => {
+    const creada = await crear(c1.token, c1.vehiculo.id, 10);
+    const ev = w.audit.events.find((e) => e.entidadId === creada.body.id)!;
+    expect(ev.datos).toMatchObject({ clienteId: c1.cliente.id, vehiculoId: c1.vehiculo.id, estado: 'ACTIVA', identityUserId: 'user-1' });
+  });
+
   it('mias de otro cliente no se invalida ni se mezcla', async () => {
     await mias(c2.token);
     await crear(c1.token, c1.vehiculo.id, 10);

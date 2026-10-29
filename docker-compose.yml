@@ -213,18 +213,75 @@ services:
     depends_on:
       - api
       - identity-service
+      - web
+      - read-model-service
     networks: [internal]
     restart: unless-stopped
 
-  # TODO (H4): audit-service (build ./audit-service), depende de rabbitmq y elasticsearch healthy.
-  # audit-service:
-  #   build: { context: ., dockerfile: audit-service/Dockerfile }
-  #   ...
-  # TODO (H5/H6): web (SPA React + Vite servida por Nginx interno en :80). Nginx ya enruta "/" a web:80
-  # (responde 502 mientras no exista).
-  # web:
-  #   build: { context: ., dockerfile: web/Dockerfile }
-  #   networks: [internal]
+  # Auditoría: suscriptor del exchange (cola audit-log, binding #) que persiste en Elasticsearch.
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    environment:
+      PORT: 3003
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      AUDIT_INDEX: ${ES_INDEX:-audit-events}
+      AUDIT_EXCHANGE: ${AUDIT_EXCHANGE:-smartparking.events}
+      AUDIT_QUEUE: ${AUDIT_QUEUE:-audit-log}
+      AUDIT_PREFETCH: ${AUDIT_PREFETCH:-20}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    # Solo desarrollo: GET /audit/events para consultar lo indexado.
+    ports: ["${AUDIT_PORT:-3003}:3003"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # CQRS lado QUERY: segundo suscriptor del exchange (cola read-model.reservas) que proyecta en
+  # MongoDB (base smartparking_read, separada de la de Identity). Vista derivada y reconstruible.
+  read-model-service:
+    build:
+      context: .
+      dockerfile: read-model-service/Dockerfile
+    environment:
+      PORT: 3004
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      READMODEL_EXCHANGE: ${AUDIT_EXCHANGE:-smartparking.events}
+      READMODEL_QUEUE: ${READMODEL_QUEUE:-read-model.reservas}
+      READMODEL_ROUTING_KEYS: ${READMODEL_ROUTING_KEYS:-reserva.*,vehiculo.*,cliente.*}
+      READMODEL_MONGO_URL: ${READMODEL_MONGO_URL:-mongodb://mongo:27017}
+      READMODEL_DB: ${READMODEL_DB:-smartparking_read}
+      JWKS_URL: ${JWKS_URL:-http://identity-service:3001/.well-known/jwks.json}
+      JWT_ISSUER: ${JWT_ISSUER:-smartparking-identity}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      mongo: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      identity-service: { condition: service_healthy }
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # SPA (React + Vite) servida por un Nginx interno en :80; sin puerto publicado (entrada: nginx :8080).
+  web:
+    build:
+      context: ./web
+    networks: [internal]
+    restart: unless-stopped
 
 networks:
   internal:

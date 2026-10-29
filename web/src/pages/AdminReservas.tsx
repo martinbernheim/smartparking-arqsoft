@@ -8,7 +8,7 @@ import { toast } from '../components/toastBus';
 import { Avatar, ConfirmModal, DataTable, EmptyState, EstadoBadge, KpiTile, Pagination, Plate, type Column } from '../components/ui';
 import { fmtCorto, iniciales } from '../format';
 import { useAsync } from '../hooks/useAsync';
-import type { ReservaDTO, ReservaFiltro } from '../types';
+import type { ReservaDTO, ReservaFiltro, ResumenCliente } from '../types';
 
 const PAGE_SIZE = 10;
 
@@ -23,6 +23,14 @@ function toApiFiltro(f: FiltroAdmin, page: number): ReservaFiltro {
   };
 }
 
+const rankingColumns: Column<ResumenCliente>[] = [
+  { key: 'cli', header: 'Cliente', cell: (c) => <strong>{c.nombre ?? c.email ?? c.clienteId.slice(0, 8)}</strong> },
+  { key: 'act', header: 'Activas', cell: (c) => c.reservasActivas },
+  { key: 'can', header: 'Canceladas', cell: (c) => c.reservasCanceladas },
+  { key: 'hrs', header: 'Horas reservadas', cell: (c) => c.totalHorasReservadas },
+  { key: 'prox', header: 'Próxima reserva', cell: (c) => (c.proximaReserva ? fmtCorto(c.proximaReserva.inicio) : '—') },
+];
+
 export default function AdminReservas() {
   const [filtro, setFiltro] = useState<FiltroAdmin>(FILTRO_VACIO);
   const [page, setPage] = useState(1);
@@ -34,6 +42,8 @@ export default function AdminReservas() {
     return { clientes: clientes.items, vehiculos };
   }, []);
   const res = useAsync(() => api.adminReservas(toApiFiltro(filtro, page)), [filtro, page]);
+
+  const ranking = useAsync(() => api.ranking(5), []);
 
   const clientes = useMemo(() => new Map((ref.data?.clientes ?? []).map((c) => [c.id, c])), [ref.data]);
   const vehiculos = useMemo(() => new Map((ref.data?.vehiculos ?? []).map((v) => [v.id, v])), [ref.data]);
@@ -52,6 +62,7 @@ export default function AdminReservas() {
       setBusy(false);
       setACancelar(null);
       res.reload();
+      ranking.reload();
     }
   };
 
@@ -97,6 +108,14 @@ export default function AdminReservas() {
         columns={columns} rows={items} rowKey={(r) => r.id} loading={res.loading && !res.data}
         empty={<EmptyState icon="calendar" title="No hay reservas" text="Probá con otros filtros o ampliá el rango de fechas." />}
         footer={res.data && res.data.total > 0 && <Pagination page={page} pageSize={PAGE_SIZE} total={res.data.total} onPage={setPage} noun="reservas" />}
+      />
+
+      <div className="page-head" style={{ marginTop: 32 }}>
+        <div><h2>Ranking (modelo de lectura CQRS)</h2><p>Clientes con más reservas activas. Vista derivada de los eventos; puede demorar unos segundos en reflejar un cambio.</p></div>
+      </div>
+      <DataTable
+        columns={rankingColumns} rows={ranking.data?.items ?? []} rowKey={(c) => c.clienteId} loading={ranking.loading && !ranking.data}
+        empty={<EmptyState icon="calendar" title="Sin datos proyectados todavía" text="El modelo de lectura se completa a medida que llegan eventos de reservas." />}
       />
 
       {aCancelar && (

@@ -2,10 +2,10 @@
   "name": "smartparking",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["contracts", "identity-service", "api"],
+  "workspaces": ["contracts", "identity-service", "api", "audit-service", "read-model-service"],
   "scripts": {
-    "build": "npm run build -w contracts && npm run build -w identity-service && npm run build -w api",
-    "test": "npm test -w identity-service && npm test -w api"
+    "build": "npm run build -w contracts && npm run build -w identity-service && npm run build -w api && npm run build -w audit-service && npm run build -w read-model-service",
+    "test": "npm test -w identity-service && npm test -w api && npm test -w audit-service && npm test -w read-model-service"
   },
   "engines": { "node": ">=22" }
 }

@@ -41,8 +41,8 @@ export function createApp({ env, jwks, clientes, vehiculos, reservas, userAdmin,
   const actor = ownership.actor();
   const auth = jwtAuth(jwks, env.JWT_ISSUER);
 
-  const clientesCtl = new ClientesController(new ClientesService(clientes, userAdmin, audit));
-  const vehiculosCtl = new VehiculosController(new VehiculosService(vehiculos, clientes, audit));
+  const clientesCtl = new ClientesController(new ClientesService(clientes, userAdmin, audit, cache));
+  const vehiculosCtl = new VehiculosController(new VehiculosService(vehiculos, clientes, audit, cache));
   const reservasCtl = new ReservasController(
     new ReservaCommandService(reservas, vehiculos, audit, cache),
     new ReservaQueryService(reservas, cache),

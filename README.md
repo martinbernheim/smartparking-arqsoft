@@ -18,10 +18,29 @@ Prerrequisitos: Node 22, Docker + Compose v2, OpenSSL (en Windows usar Git Bash 
 ```bash
 bash scripts/generate-keys.sh          # genera keys/private.pem y keys/public.pem (RS256)
 cp .env.example .env                   # credenciales demo: admin@smartparking.local / Admin123!
-docker compose up -d --build           # levanta la infraestructura y los servicios disponibles
+docker compose up -d --build           # levanta toda la plataforma (Elasticsearch tarda ~1 min en quedar healthy)
 ```
 
-Perfiles opcionales: `--profile observability` (Kibana, :5601) y `--profile replica` (réplica PostgreSQL).
+Perfiles opcionales: `--profile observability` (Kibana, http://localhost:5601) y `--profile replica` (réplica PostgreSQL).
+
+### Arquitectura y servicios
+
+| Servicio | Rol | Acceso |
+|---|---|---|
+| `nginx` | Punto de entrada único y balanceador | http://localhost:8080 |
+| `web` | SPA React + Vite (Nginx interno) | http://localhost:8080/ |
+| `identity-service` | Login y JWT RS256 (MongoDB, base `identity`) | `/auth/*`, `/.well-known/*` (dev: :3001) |
+| `api` (x2) | Lado COMANDO: CRUD de Clientes, Vehículos y Reservas (PostgreSQL, Redis); publica eventos | `/api/*`, Swagger en http://localhost:8080/api/docs |
+| `api-migrate` | One-shot: migraciones Prisma + seed | - |
+| `audit-service` | Suscriptor `audit-log` (`#`) -> Elasticsearch `audit-events` | dev: http://localhost:3003/audit/events |
+| `read-model-service` | Lado QUERY (CQRS): suscriptor `read-model.reservas` -> MongoDB `smartparking_read` | `/consultas/*` |
+| `rabbitmq` | Exchange topic `smartparking.events` | UI http://localhost:15672 (guest/guest) |
+| `elasticsearch` | Almacén de auditoría (single-node, sin seguridad) | http://localhost:9200 |
+| `kibana` (perfil `observability`) | Exploración de auditoría | http://localhost:5601 |
+| `postgres`, `redis`, `mongo` | Persistencia, caché y base de Identity / modelo de lectura | puertos de dev 5432, 6379, 27017 |
+
+Flujo de eventos: la API publica cada cambio (con `datos`, snapshot de la entidad) en `smartparking.events`; Audit y el modelo de
+lectura reciben cada uno su copia en su propia cola (Pub/Sub). Ver `read-model-service/README.md` y `audit-service/README.md`.
 
 Todo el acceso de clientes pasa por Nginx en **http://localhost:8080**:
 
@@ -29,7 +48,8 @@ Todo el acceso de clientes pasa por Nginx en **http://localhost:8080**:
 |---|---|
 | `/auth/*`, `/.well-known/*` | Identity Service (`POST /auth/login`, JWKS) |
 | `/api/*` | API, 2 réplicas balanceadas (Swagger UI en `/api/docs`) |
-| `/` | SPA `web` (502 hasta que ese servicio exista) |
+| `/consultas/*` | Read Model Service (CQRS): `GET /consultas/clientes/:id/resumen`, `GET /consultas/ranking?limit=` |
+| `/` | SPA `web` |
 
 El puerto 3001 de Identity sigue publicado solo para desarrollo; la API no publica puerto (2 réplicas, solo vía Nginx).
 Al levantar, el servicio one-shot `api-migrate` aplica las migraciones y el seed idempotente (clientes demo, vehículos
@@ -47,6 +67,9 @@ curl -si localhost:8080/api/reservas/mias -H "Authorization: Bearer $TOKEN" | gr
   `reserva.creada`, `reserva.cancelada`, `cliente.creado`, ...; UI de RabbitMQ en http://localhost:15672, guest/guest).
   Si RabbitMQ no responde tras 3 reintentos, la petición HTTP igual tiene éxito y se loguea `AUDIT_PUBLISH_FAILED`.
   Con `AUDIT_PUBLISHER=log` los eventos solo se escriben en el log (`AUDIT_EVENT`).
+- CQRS: los comandos escriben en PostgreSQL y emiten el evento; el modelo de lectura (`smartparking_read` en Mongo, vista
+  derivada y reconstruible, no fuente de verdad) se actualiza de forma asíncrona. Arranca vacío: se completa a medida que
+  llegan eventos (crear una reserva ya lo puebla). La SPA (admin, Reservas) muestra un ranking que consume `/consultas/ranking`.
 - Pruebas de carga: ver `load-tests/README.md` (k6, 500 req/s).
 Límite conocido: si falla el alta del Cliente después de crear el usuario en Identity, el usuario queda huérfano
 (se registra con `INCONSISTENCIA` en el log; la compensación automática no está implementada).
@@ -55,7 +78,20 @@ Identity del cliente eliminado no se borra (Identity no expone baja de usuarios)
 
 Los ids de los clientes demo son fijos (`SEED_CLIENT1_ID`, `SEED_CLIENT2_ID` en `.env.example`).
 
-Pruebas y build locales:
+### Demo rápida
+
+1. Abrir http://localhost:8080 e ingresar como `cliente1@smartparking.local` / `Cliente123!` (o `cliente2@...`); admin: `admin@smartparking.local` / `Admin123!`.
+2. Crear una reserva (o por API con el flujo de arriba).
+3. Auditoría: `curl "localhost:3003/audit/events?entidad=Reserva"` (o Kibana con el perfil `observability`).
+4. Modelo de lectura (con token de admin): `curl localhost:8080/consultas/ranking -H "Authorization: Bearer $ADMIN_TOKEN"` y
+   `curl localhost:8080/consultas/clientes/<clienteId>/resumen -H "Authorization: Bearer $ADMIN_TOKEN"`.
+5. RabbitMQ (http://localhost:15672, Queues): `audit-log` y `read-model.reservas`, cada una con sus DLQ.
+
+### Pruebas, build y carga
+
+Tests con Vitest en `identity-service`, `api`, `audit-service` y `read-model-service`; el frontend se construye aparte
+(`cd web && npm ci && npm run build`; `npm run dev` con `VITE_MOCK=1` para trabajar sin backend).
+Carga con k6: `load-tests/README.md`.
 
 ```bash
 npm install

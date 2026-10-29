@@ -1,5 +1,6 @@
 import type { ActualizarClienteRequest, CrearClienteRequest } from '@smartparking/contracts';
 import { emitirAuditoria, type IAuditEventPublisher } from '../audit/audit-event-publisher';
+import type { CacheService } from '../cache/cache.service';
 import type { Actor } from '../auth/auth.types';
 import type { IUserAdmin } from '../identity/user-admin.client';
 import { logger } from '../logger';
@@ -7,11 +8,14 @@ import { ConflictError, ForbiddenError, NotFoundError } from '../shared/errors';
 import type { Page } from '../shared/page';
 import type { Cliente, ClienteRepository } from './cliente.repository';
 
+const datosCliente = (c: Cliente) => ({ nombre: c.nombre, email: c.email, identityUserId: c.identityUserId });
+
 export class ClientesService {
   constructor(
     private readonly repo: ClienteRepository,
     private readonly identity: IUserAdmin,
     private readonly audit: IAuditEventPublisher,
+    private readonly cache?: Pick<CacheService, 'invalidateReservas'>,
   ) {}
 
   // RF1. 1) usuario en Identity (reenviando el JWT del ADMIN, D9)  2) fila Cliente con identityUserId.
@@ -38,7 +42,7 @@ export class ClientesService {
       });
       throw e;
     }
-    emitirAuditoria(this.audit, 'CREAR', 'Cliente', cliente.id, actor.userId);
+    emitirAuditoria(this.audit, 'CREAR', 'Cliente', cliente.id, actor.userId, datosCliente(cliente));
     return cliente;
   }
 
@@ -62,7 +66,7 @@ export class ClientesService {
   async actualizar(actor: Actor, id: string, req: ActualizarClienteRequest): Promise<Cliente> {
     await this.obtener(id);
     const c = await this.repo.update(id, req);
-    emitirAuditoria(this.audit, 'MODIFICAR', 'Cliente', c.id, actor.userId);
+    emitirAuditoria(this.audit, 'MODIFICAR', 'Cliente', c.id, actor.userId, datosCliente(c));
     return c;
   }
 
@@ -72,6 +76,8 @@ export class ClientesService {
       throw new ConflictError('No se puede eliminar un cliente con reservas activas');
     }
     await this.repo.delete(id);
+    // El borrado elimina también reservas CANCELADAS: los listados cacheados deben invalidarse.
+    await this.cache?.invalidateReservas(id);
     emitirAuditoria(this.audit, 'ELIMINAR', 'Cliente', id, actor.userId);
   }
 }

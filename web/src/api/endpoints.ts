@@ -1,7 +1,7 @@
 import { http, PATHS } from './client';
 import type {
   ActualizarClienteRequest, ActualizarReservaRequest, ActualizarVehiculoRequest, AuthResponse, ClienteDTO,
-  CrearClienteRequest, CrearReservaRequest, CrearVehiculoRequest, Page, ReservaDTO, ReservaFiltro, VehiculoDTO,
+  CrearClienteRequest, CrearReservaRequest, CrearVehiculoRequest, Page, ReservaDTO, RankingResponse, ReservaFiltro, VehiculoDTO,
 } from '../types';
 
 export const api = {
@@ -24,4 +24,6 @@ export const api = {
   actualizarReserva: (id: string, b: ActualizarReservaRequest) => http.put<ReservaDTO>(`${PATHS.reservas}/${id}`, b),
   cancelarReserva: (id: string) => http.post<ReservaDTO>(PATHS.reservaCancelar(id)),
   adminReservas: (f: ReservaFiltro) => http.get<Page<ReservaDTO>>(PATHS.adminReservas, { ...f }),
+  // Modelo de lectura CQRS (read-model-service)
+  ranking: (limit = 5) => http.get<RankingResponse>(PATHS.ranking, { limit }),
 };

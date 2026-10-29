@@ -11,6 +11,7 @@ export const PATHS = {
   reservasMias: '/api/reservas/mias',
   reservaCancelar: (id: string) => `/api/reservas/${id}/cancelar`,
   adminReservas: '/api/admin/reservas',
+  ranking: '/consultas/ranking',
 } as const;
 
 export interface FieldIssue { path: (string | number)[]; message: string }

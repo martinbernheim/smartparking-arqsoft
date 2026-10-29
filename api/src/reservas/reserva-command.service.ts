@@ -11,6 +11,17 @@ import { ConflictError, NotFoundError } from '../shared/errors';
 import type { VehiculoRepository } from '../vehiculos/vehiculo.repository';
 import { MSG_SOLAPAMIENTO, type Reserva, type ReservaRepository } from './reserva.repository';
 
+// Snapshot de la reserva para el modelo de lectura. identityUserId solo si actúa el propio cliente dueño
+// (actor.userId es entonces el sub de Identity del cliente).
+const snapshot = (actor: Actor, r: Reserva): Record<string, unknown> => ({
+  clienteId: r.clienteId,
+  vehiculoId: r.vehiculoId,
+  inicio: r.inicio.toISOString(),
+  fin: r.fin.toISOString(),
+  estado: r.estado,
+  ...(actor.isAdmin ? {} : { identityUserId: actor.userId }),
+});
+
 export class ReservaCommandService {
   constructor(
     private readonly repo: ReservaRepository,
@@ -45,7 +56,7 @@ export class ReservaCommandService {
 
     const reserva = await this.repo.create({ clienteId: vehiculo.clienteId, vehiculoId: vehiculo.id, inicio, fin });
     await this.cache.invalidateReservas(reserva.clienteId);
-    emitirAuditoria(this.audit, 'CREAR', 'Reserva', reserva.id, actor.userId);
+    emitirAuditoria(this.audit, 'CREAR', 'Reserva', reserva.id, actor.userId, snapshot(actor, reserva));
     return reserva;
   }
 
@@ -60,7 +71,7 @@ export class ReservaCommandService {
     }
     const r = await this.repo.update(id, { inicio, fin });
     await this.cache.invalidateReservas(r.clienteId);
-    emitirAuditoria(this.audit, 'MODIFICAR', 'Reserva', r.id, actor.userId);
+    emitirAuditoria(this.audit, 'MODIFICAR', 'Reserva', r.id, actor.userId, snapshot(actor, r));
     return r;
   }
 
@@ -70,7 +81,7 @@ export class ReservaCommandService {
     if (actual.estado === 'CANCELADA') return actual;
     const r = await this.repo.update(id, { estado: 'CANCELADA' });
     await this.cache.invalidateReservas(r.clienteId);
-    emitirAuditoria(this.audit, 'CANCELAR', 'Reserva', r.id, actor.userId);
+    emitirAuditoria(this.audit, 'CANCELAR', 'Reserva', r.id, actor.userId, snapshot(actor, r));
     return r;
   }
 }

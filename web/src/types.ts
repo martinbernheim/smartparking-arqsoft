@@ -40,3 +40,14 @@ export interface ReservaFiltro {
 }
 
 export interface Page<T> { items: T[]; total: number; page: number; pageSize: number }
+
+export interface ResumenCliente {
+  clienteId: string;
+  nombre?: string;
+  email?: string;
+  reservasActivas: number;
+  reservasCanceladas: number;
+  totalHorasReservadas: number;
+  proximaReserva: { reservaId: string; vehiculoId: string; inicio: string; fin: string } | null;
+}
+export interface RankingResponse { count: number; items: ResumenCliente[] }

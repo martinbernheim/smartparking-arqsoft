@@ -23,10 +23,10 @@ const clientes: ClienteDTO[] = [
   { id: id(4), nombre: 'Joaquín Techera', email: 'joaquin.techera@correo.com.uy', telefono: '+598 98 777 341', identityUserId: 'u-cli4' },
 ];
 const vehiculos: VehiculoDTO[] = [
-  { id: id(11), matricula: 'SBA 1234', marca: 'Toyota', modelo: 'Corolla', clienteId: id(1) },
+  { id: id(11), matricula: 'SBA 1234', marca: 'Volkswagen', modelo: 'Virtus', clienteId: id(1) },
   { id: id(12), matricula: 'SCD 5678', marca: 'Volkswagen', modelo: 'Polo', clienteId: id(1) },
-  { id: id(13), matricula: 'SAC 4410', marca: 'Chevrolet', modelo: 'Onix', clienteId: id(2) },
-  { id: id(14), matricula: 'SBK 7783', marca: 'Renault', modelo: 'Kangoo', clienteId: id(3) },
+  { id: id(13), matricula: 'SAC 4410', marca: 'Volkswagen', modelo: 'Nivus', clienteId: id(2) },
+  { id: id(14), matricula: 'SBK 7783', marca: 'Volkswagen', modelo: 'Saveiro', clienteId: id(3) },
   { id: id(15), matricula: 'SDF 2096', clienteId: id(4) },
 ];
 const reservas: ReservaDTO[] = [
@@ -64,6 +64,15 @@ export async function mockRequest<T>(method: string, path: string, opts: { body?
     return out({ accessToken: fakeToken(body.email.startsWith('admin') ? 'ADMIN' : 'CLIENTE'), expiresIn: 3600 });
   }
   if (path === '/api/clientes/me') return out(myCliente());
+  if (path === '/consultas/ranking') {
+    const items = clientes.map((c) => {
+      const rs = reservas.filter((x) => x.clienteId === c.id);
+      const act = rs.filter((x) => x.estado === 'ACTIVA');
+      const horas = act.reduce((a, x) => a + (new Date(x.fin).getTime() - new Date(x.inicio).getTime()) / 3_600_000, 0);
+      return { clienteId: c.id, nombre: c.nombre, email: c.email, reservasActivas: act.length, reservasCanceladas: rs.length - act.length, totalHorasReservadas: horas, proximaReserva: null };
+    }).sort((a, b) => b.reservasActivas - a.reservasActivas).slice(0, Number(query.limit ?? 5));
+    return out({ count: items.length, items });
+  }
 
   if (path === '/api/clientes') {
     if (method === 'POST') {

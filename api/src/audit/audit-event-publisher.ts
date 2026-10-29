@@ -17,6 +17,7 @@ export function emitirAuditoria(
   entidad: 'Cliente' | 'Vehiculo' | 'Reserva',
   entidadId: string,
   userId: string,
+  datos?: Record<string, unknown>,
 ): void {
   const evento: EventoAuditoriaDTO = {
     eventId: randomUUID(),
@@ -25,6 +26,7 @@ export function emitirAuditoria(
     entidadId,
     userId,
     fechaHora: new Date().toISOString(),
+    ...(datos ? { datos } : {}),
   };
   try {
     publisher.publicar(evento).catch((e) =>

@@ -61,10 +61,10 @@ function VehiculoModal({ vehiculo, onClose, onSaved }: { vehiculo: VehiculoDTO |
             onChange={(e) => setMatricula(e.target.value.toUpperCase())} />
         </FormField>
         <FormField label="Marca" htmlFor="v-marca" error={errs.marca}>
-          <input className={`input${errs.marca ? ' is-invalid' : ''}`} id="v-marca" value={marca} placeholder="Toyota" onChange={(e) => setMarca(e.target.value)} />
+          <input className={`input${errs.marca ? ' is-invalid' : ''}`} id="v-marca" value={marca} placeholder="Volkswagen" onChange={(e) => setMarca(e.target.value)} />
         </FormField>
         <FormField label="Modelo" htmlFor="v-modelo" error={errs.modelo}>
-          <input className={`input${errs.modelo ? ' is-invalid' : ''}`} id="v-modelo" value={modelo} placeholder="Corolla" onChange={(e) => setModelo(e.target.value)} />
+          <input className={`input${errs.modelo ? ' is-invalid' : ''}`} id="v-modelo" value={modelo} placeholder="Polo" onChange={(e) => setModelo(e.target.value)} />
         </FormField>
       </div>
     </Modal>
