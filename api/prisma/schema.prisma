@@ -1,0 +1,61 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Sin campos de contraseña: las credenciales viven solo en Identity (MongoDB).
+model Cliente {
+  id             String     @id @default(uuid()) @db.Uuid
+  nombre         String
+  email          String     @unique
+  telefono       String?
+  identityUserId String     @unique @map("identity_user_id")
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  vehiculos      Vehiculo[]
+  reservas       Reserva[]
+
+  @@map("clientes")
+}
+
+model Vehiculo {
+  id        String    @id @default(uuid()) @db.Uuid
+  matricula String    @unique
+  marca     String?
+  modelo    String?
+  clienteId String    @map("cliente_id") @db.Uuid
+  cliente   Cliente   @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  reservas  Reserva[]
+
+  @@index([clienteId])
+  @@map("vehiculos")
+}
+
+enum EstadoReserva {
+  ACTIVA
+  CANCELADA
+
+  @@map("estado_reserva")
+}
+
+model Reserva {
+  id         String        @id @default(uuid()) @db.Uuid
+  clienteId  String        @map("cliente_id") @db.Uuid
+  vehiculoId String        @map("vehiculo_id") @db.Uuid
+  inicio     DateTime      @db.Timestamptz(3)
+  fin        DateTime      @db.Timestamptz(3)
+  estado     EstadoReserva @default(ACTIVA)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cliente    Cliente       @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  vehiculo   Vehiculo      @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
+
+  @@index([clienteId, estado])
+  @@index([vehiculoId])
+  @@index([inicio, fin])
+  @@map("reservas")
+}

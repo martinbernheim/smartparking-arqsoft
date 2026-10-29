@@ -152,7 +152,36 @@ services:
       retries: 10
       start_period: 10s
 
-  # TODO (H2): api (x2 réplicas), build ./api, puerto interno 3000
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL:-postgresql://smartparking:smartparking@postgres:5432/smartparking}
+      DATABASE_REPLICA_URL: ${DATABASE_REPLICA_URL:-postgresql://smartparking:smartparking@postgres:5432/smartparking}
+      IDENTITY_BASE_URL: ${IDENTITY_BASE_URL:-http://identity-service:3001}
+      JWKS_URL: ${JWKS_URL:-http://identity-service:3001/.well-known/jwks.json}
+      JWT_ISSUER: ${JWT_ISSUER:-smartparking-identity}
+      AUDIT_PUBLISHER: ${AUDIT_PUBLISHER:-log}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SEED_CLIENT1_EMAIL: ${SEED_CLIENT1_EMAIL:-}
+      SEED_CLIENT1_ID: ${SEED_CLIENT1_ID:-}
+      SEED_CLIENT2_EMAIL: ${SEED_CLIENT2_EMAIL:-}
+      SEED_CLIENT2_ID: ${SEED_CLIENT2_ID:-}
+    # Puerto publicado solo para desarrollo (en H5 el acceso pasa por Nginx y habrá 2 réplicas).
+    ports: ["${API_PORT:-3002}:3002"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      identity-service: { condition: service_healthy }
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   # TODO (H4): audit-service, build ./audit-service
   # TODO (H5): nginx (nginx:alpine, 8080:80) y web (SPA React + Vite servida por Nginx en /)
 

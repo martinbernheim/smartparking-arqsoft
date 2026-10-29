@@ -7,7 +7,7 @@ COPY identity-service/package.json identity-service/
 RUN npm ci
 COPY contracts contracts
 COPY identity-service identity-service
-RUN npm run build
+RUN npm run build -w contracts && npm run build -w identity-service
 RUN npm prune --omit=dev
 
 FROM node:22-alpine
