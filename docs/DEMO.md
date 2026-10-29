@@ -2,6 +2,8 @@
 
 ## 0. Preparación (antes de la defensa)
 
+> **Requisito para los comandos:** Git Bash con `curl` y `jq`. En Windows: `winget install jqlang.jq` (reabrir la terminal). Sin `jq`, quitar el `| jq` del final de cada comando.
+
 ```bash
 bash scripts/generate-keys.sh        # claves RS256 para Identity
 cp .env.example .env

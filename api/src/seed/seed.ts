@@ -12,7 +12,7 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
   const clientes = [
     {
       id: '00000000-0000-4000-8000-0000000000c1',
-      nombre: 'Cliente Uno',
+      nombre: 'María Fernández',
       email: env.SEED_CLIENT1_EMAIL ?? 'cliente1@smartparking.local',
       telefono: '099 111 222',
       identityUserId: env.SEED_CLIENT1_ID,
@@ -23,7 +23,7 @@ export async function seed(prisma: PrismaClient, env: SeedEnv): Promise<void> {
     },
     {
       id: '00000000-0000-4000-8000-0000000000c2',
-      nombre: 'Cliente Dos',
+      nombre: 'Santiago Rodríguez',
       email: env.SEED_CLIENT2_EMAIL ?? 'cliente2@smartparking.local',
       telefono: '098 333 444',
       identityUserId: env.SEED_CLIENT2_ID,

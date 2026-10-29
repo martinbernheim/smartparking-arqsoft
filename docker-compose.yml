@@ -73,6 +73,10 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    # nombre de nodo estable (los datos dependen del hostname) y reinicio ante la carrera
+    # de permisos de .erlang.cookie que ocurre a veces con un volumen nuevo
+    hostname: rabbitmq
+    restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
