@@ -1,0 +1,68 @@
+@startuml
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 11
+skinparam ArrowFontSize 9
+skinparam nodesep 20
+skinparam ranksep 30
+skinparam component {
+  BackgroundColor<<process>> #E3F2FD
+  BackgroundColor<<webapp>> #FFF8E1
+  BackgroundColor<<reverse proxy / load balancer>> #F3E5F5
+  BackgroundColor<<broker>> #FFE0B2
+  BackgroundColor<<module>> #E8F5E9
+  BackgroundColor<<adapter>> #FFFDE7
+}
+skinparam database {
+  BackgroundColor<<datastore>> #ECEFF1
+  BackgroundColor<<cache>> #FFEBEE
+}
+
+title Figura 5: Arquitectura orientada a eventos – Pub/Sub y CQRS
+
+component "SmartParking API\n(2 réplicas)" as API <<process>> {
+  component "ReservaCommandService\n(lado comando)" as Cmd <<module>>
+  component "ReservaQueryService\n(lado consulta)" as Qry <<module>>
+  component "RabbitMqAuditPublisher\n(confirms, 3 reintentos)" as Pub <<adapter>>
+}
+component "RabbitMQ" as MQ <<broker>> {
+  component "exchange smartparking.events\n(topic)" as EX <<module>>
+  queue "audit-log\n(binding #)" as QA
+  queue "read-model.reservas\n(bindings reserva.*, vehiculo.*)" as QR
+  component "smartparking.events.dlx" as DLX <<module>>
+  queue "audit-log.dlq" as DLQA
+  queue "read-model.reservas.dlq" as DLQR
+}
+component "Audit Log Service" as Audit <<process>>
+component "read-model-service\n(CQRS: proyección + /consultas/)" as RM <<process>>
+database "PostgreSQL primaria\n(escrituras)" as PG <<datastore>>
+database "PostgreSQL réplica\n(lecturas)" as REP <<datastore>>
+database "Redis\n(caché TTL 30 s)" as RED <<cache>>
+database "Elasticsearch\naudit-events" as ES <<datastore>>
+database "MongoDB smartparking_read\nresumen_cliente (vista derivada)" as MG <<datastore>>
+component "Nginx :8080\n/api/  /consultas/" as NG <<reverse proxy / load balancer>>
+
+NG --> API : /api/ (JWT)
+NG --> RM : /consultas/ (JWT)
+Cmd --> PG : escribe (commit)
+Cmd --> Pub : evento post-commit
+Pub --> EX : publish <entidad>.<accion>
+EX --> QA : '#'
+EX --> QR : 'reserva.*', 'vehiculo.*'
+QA --> Audit : consume (ack manual)
+QR --> RM : consume (idempotente por eventId)
+Audit --> ES : index (_id = eventId)
+RM --> MG : upsert proyección
+QA ..> DLX : nack
+QR ..> DLX : nack
+DLX ..> DLQA
+DLX ..> DLQR
+PG ..> REP : replicación
+Qry --> REP : lee
+Qry --> RED : caché
+legend bottom
+  Lado comando: API -> PostgreSQL primaria. Lado consulta: ReservaQueryService (réplica + Redis) y read-model-service (MongoDB).
+  Pub/Sub: un publicador, dos suscriptores con colas propias; agregar uno nuevo no modifica la API.
+  Líneas punteadas: dead-lettering y replicación. Consistencia eventual entre comando y proyección.
+end legend
+@enduml

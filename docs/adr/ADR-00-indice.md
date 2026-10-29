@@ -9,8 +9,9 @@
 | [ADR-05](ADR-05-persistencia-operacional-postgresql-prisma.md) | Persistencia operacional: PostgreSQL + Prisma | Aceptado | Integridad, Performance, Modificabilidad | Múltiples copias de datos; encapsular |
 | [ADR-06](ADR-06-cache-redis.md) | Caché de consultas con Redis | Aceptado | Performance | Múltiples copias de datos |
 | [ADR-07](ADR-07-entrada-nginx.md) | Entrada única con Nginx (proxy y balanceo) | Aceptado | Performance, Seguridad | Múltiples copias de cómputos; restringir caminos de comunicación |
-| [ADR-08](ADR-08-almacen-auditoria-elasticsearch.md) | Almacén de auditoría en Elasticsearch | Aceptado | Seguridad | Mantener audit trail |
+| [ADR-08](ADR-08-almacen-auditoria-elasticsearch.md) | Almacén de auditoría en Elasticsearch | Aceptado (rev. 2026-10-28) | Seguridad | Mantener audit trail |
 | [ADR-09](ADR-09-frontend-spa-react.md) | Cliente web: SPA React + Vite + TypeScript | Aceptado | Usabilidad, Modificabilidad | Reducir acoplamiento |
 | [ADR-10](ADR-10-despliegue-docker-compose.md) | Despliegue con Docker Compose | Aceptado | Deployability, Testeabilidad | Restringir caminos de comunicación (red interna) |
+| [ADR-11](ADR-11-cqrs-modelo-lectura.md) | CQRS con modelo de lectura (read-model-service) | Aceptado | Performance, Modificabilidad | Múltiples copias de datos; diferir enlaces (publicador/suscriptor) |
 
 Nota: JWT, RabbitMQ, Redis, Nginx, etc. son herramientas; cada ADR indica qué táctica implementa.

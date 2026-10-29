@@ -20,21 +20,27 @@ skinparam database {
 
 title Figura 4: Audit Log Service – estructura interna
 
-component "Audit Log Service\nNode + Winston" as Audit <<process>> {
+component "Audit Log Service\nNode + Winston (log técnico)" as Audit <<process>> {
   component "AuditConsumer\n(suscriptor cola audit-log)" as Consumer <<module>>
-  component "AuditWriter\n(Winston + transport Elasticsearch)" as Writer <<module>>
+  component "AuditWriter (cliente @elastic/elasticsearch, _id = eventId)" as Writer <<module>>
 }
 interface "IEventBus\nexchange smartparking.events" as IEventBus
 interface "IAuditStore\nindex audit-events" as IAuditStore
-component "RabbitMQ" as MQ <<broker>>
+component "RabbitMQ" as MQ <<broker>> {
+  queue "audit-log\n(binding #)" as Q
+  component "smartparking.events.dlx\n(dead-letter exchange)" as DLX <<module>>
+  queue "audit-log.dlq" as DLQ
+}
 package "Persistencia de auditoría" {
   database "Elasticsearch\nindex audit-events (append-only)" as ES <<datastore>>
 }
 MQ -up- IEventBus
 ES -down- IAuditStore
 Consumer ..> Writer : usa
-Consumer .up.> IEventBus : AMQP (subscribe audit-log)
-Writer .down.> IAuditStore : HTTP (bulk index)
+Consumer .up.> IEventBus : AMQP (subscribe audit-log,\nack manual, prefetch 50)
+Q ..> DLX : nack / 5 reintentos agotados
+DLX ..> DLQ : routing key audit-log.dlq
+Writer .down.> IAuditStore : HTTP (index, _id = eventId)
 legend bottom
   Círculo = interfaz provista; punteada con flecha = requerida/dependencia
 end legend

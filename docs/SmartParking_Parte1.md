@@ -53,7 +53,7 @@ Reglas de dominio: un vehículo pertenece a un único cliente; una reserva usa u
 
 ![Figura 4](diagramas/04-audit-interna.png)
 
-*Figura 4. Audit Log Service: consumidor de la cola `audit-log` y escritor hacia Elasticsearch.*
+*Figura 4. Audit Log Service: consumidor de la cola `audit-log` (con DLQ `audit-log.dlq`) y escritor hacia Elasticsearch mediante el cliente oficial `@elastic/elasticsearch` (`_id` = `eventId`).*
 
 ### 2.2 Catálogo de elementos
 
@@ -82,9 +82,9 @@ Reglas de dominio: un vehículo pertenece a un único cliente; una reserva usa u
 | **Read Replica** `<<datastore>>` | Copia de lectura de la BD operacional (replicación desde la primaria). | `ISqlReplica` | `ISqlPrimary` (replicación) | PostgreSQL (réplica en *streaming*). |
 | **Redis** `<<cache>>` | Caché de consultas de reservas (propias y globales con filtros). | `ICache` | — | Redis: memoria, TTL nativo. |
 | **RabbitMQ** `<<broker>>` | Intermediario *pub/sub*: exchange `smartparking.events` (topic); cola durable `audit-log`. | `IEventBus` | — | RabbitMQ (AMQP): colas durables, confirms. |
-| **Audit Log Service** `<<process>>` | Suscribirse a la cola `audit-log` y persistir cada evento en su log independiente. | — | `IEventBus`, `IAuditStore` | Node.js + Winston. |
+| **Audit Log Service** `<<process>>` | Suscribirse a la cola `audit-log` y persistir cada evento en su log independiente. | — | `IEventBus`, `IAuditStore` | Node.js + Winston (log técnico). |
 | ↳ AuditConsumer | Consume mensajes de la cola `audit-log` y confirma (ack) tras persistir. | — | `IEventBus`, AuditWriter | `amqplib`. |
-| ↳ AuditWriter | Escribe el evento en Elasticsearch (indexación en bloque). | — | `IAuditStore` | Winston + *transport* Elasticsearch. |
+| ↳ AuditWriter | Escribe el evento en Elasticsearch con `_id` = `eventId` (idempotente ante reentregas). | — | `IAuditStore` | Cliente oficial `@elastic/elasticsearch`. |
 | **Elasticsearch** `<<datastore>>` | Almacén append-only del índice `audit-events`. | `IAuditStore` | — | Elasticsearch: indexación y búsqueda de eventos. |
 | **Kibana** `<<webapp>>` (opcional) | Consulta del audit trail. | — | `IAuditStore` | Kibana. |
 
@@ -285,7 +285,7 @@ Verificaciones cruzadas: (i) los nombres de componentes e interfaces del texto s
 | Redis | Caché de consultas de reservas (TTL 30 s) | Latencia mínima y TTL nativo; táctica de múltiples copias de datos. |
 | Nginx | Reverse proxy y balanceador | Punto de entrada único y balanceo entre N instancias (múltiples copias de cómputos). |
 | RabbitMQ (`amqplib`) | Bus de eventos pub/sub | Intermediario asíncrono con colas durables y confirms; sostiene ADR-01 y el escenario 2. |
-| Winston + Elasticsearch (+ Kibana) | Log técnico y audit trail independiente | Almacén append-only con búsqueda; visto en el curso; Kibana para consulta. |
+| Elasticsearch (cliente oficial) + Winston (+ Kibana) | Audit trail independiente (Elasticsearch) y log técnico (Winston) | Almacén append-only con búsqueda; escritura confirmada antes del `ack` e idempotente (`_id` = `eventId`); Kibana para consulta. |
 
 ---
 

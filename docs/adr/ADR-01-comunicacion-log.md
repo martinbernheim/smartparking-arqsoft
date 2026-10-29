@@ -42,6 +42,8 @@ Cada alta, modificación o cancelación exitosa en Clientes, Vehículos o Reserv
 
 Nosotros usaremos una cola de mensajes asíncrona con modelo publicador-suscriptor sobre RabbitMQ. La API publicará un EventoAuditoriaDTO en el exchange `smartparking.events` (topic) después del *commit* de cada operación exitosa, mediante el puerto `IAuditEventPublisher` y su adapter RabbitMQ, con *publisher confirms* y reintentos con *backoff*. El Audit Log Service se suscribirá con la cola durable `audit-log`.
 
+**Evolución.** El exchange topic `smartparking.events` ya tiene dos suscriptores con colas propias: `audit-log` (binding `#`, Audit Log Service) y `read-model.reservas` (bindings `reserva.*` y `vehiculo.*`, read-model-service; ver ADR-11). El segundo suscriptor se agregó sin modificar la API, lo que confirma la decisión de usar publicador-suscriptor.
+
 ## Justificación
 
 - El CRUD responde sin esperar al log, lo que sostiene el escenario 1 (táctica *limitar la respuesta a eventos*).

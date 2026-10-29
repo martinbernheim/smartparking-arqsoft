@@ -29,32 +29,43 @@ El Audit Log Service consume los EventoAuditoriaDTO (ADR-01) y debe persistirlos
 - Contras: consulta pobre; difícil de proteger e indexar; sin búsqueda estructurada.
 - Atributos: favorece simplicidad; perjudica Seguridad (trazabilidad) y consulta.
 
-**D. Elasticsearch con Winston + `winston-elasticsearch` (elegida).** Kibana opcional para consulta.
+**D. Elasticsearch con el cliente oficial `@elastic/elasticsearch` (elegida).** Winston queda para el log técnico del servicio. Kibana opcional para consulta.
 
 - Pros: pensado para eventos con marca de tiempo; búsqueda y filtros por campo; visto en el curso; Kibana visualiza el *audit trail*.
 - Contras: servicio pesado en memoria; el evento tarda en ser visible tras indexarse; operación más compleja.
 - Atributos: favorece Seguridad (trazabilidad) y Performance de búsqueda; perjudica Complejidad.
+
+**E. Winston + transporte `winston-elasticsearch` (considerada y descartada).**
+
+- Pros: poco código; Winston ya se usa para logs técnicos.
+- Contras: el transporte escribe de forma *fire-and-forget* con buffer interno y sin confirmación por documento, por lo que no se puede hacer `ack` del mensaje solo después de que el evento esté persistido; tampoco permite controlar el `_id` del documento, necesario para la idempotencia ante reentregas.
+- Atributos: favorece Complejidad baja; perjudica la garantía de entrega y la idempotencia del audit trail.
 
 | Alternativa | Trazabilidad / consulta | Aislamiento del negocio | Complejidad |
 |---|---|---|---|
 | A. MongoDB | Media | Media | Baja |
 | B. PostgreSQL separada | Media | Alta | Media |
 | C. Archivos | Baja | Media | Muy baja |
-| D. Elasticsearch (elegida) | Alta | Alta | Alta |
+| D. Elasticsearch + cliente oficial (elegida) | Alta | Alta | Alta |
+| E. winston-elasticsearch | Media (sin confirmación de escritura) | Alta | Media |
 
 ## Decisión
 
-Nosotros usaremos Elasticsearch como almacén del registro de auditoría. El Audit Log Service escribirá cada evento con Winston y el transporte `winston-elasticsearch` en el índice `audit-events`, usando `eventId` como identificador del documento. Kibana será opcional para consulta visual.
+Nosotros usaremos Elasticsearch como almacén del registro de auditoría. El Audit Log Service escribirá cada evento con el cliente oficial `@elastic/elasticsearch` en el índice `audit-events`, usando `eventId` como `_id` del documento, y confirmará (`ack`) el mensaje de la cola solo después de la escritura. Winston se usa únicamente para el logging técnico del servicio. Kibana será opcional para consulta visual.
 
 ## Justificación
 
 - Táctica de Seguridad *mantener audit trail* (Recuperar): cada operación exitosa queda registrada con usuario, entidad y fecha en un almacén separado del negocio.
 - El uso de `eventId` como `_id` hace la escritura idempotente ante reentregas de la cola (ADR-01).
+- La escritura con el cliente oficial devuelve confirmación por documento, lo que permite el `ack` manual tras persistir; con 5 reintentos fallidos el mensaje va a la DLQ `audit-log.dlq`.
+- Se descartó E (`winston-elasticsearch`) porque su escritura es *fire-and-forget* con buffer, sin confirmación ni control de `_id`.
 - Se descartó A para no mezclar el log con la tecnología de identidad, B por rigidez y costo operativo, y C por su pobre capacidad de consulta.
 
 ## Estado
 
 Aceptado
+
+Revisión 2026-10-28: el plan inicial (D8) preveía Winston + `winston-elasticsearch`; en la implementación se cambió al cliente oficial `@elastic/elasticsearch` para poder confirmar la escritura antes del `ack` y fijar `_id = eventId` (idempotencia). La decisión de fondo (Elasticsearch como almacén) no cambia.
 
 ## Consecuencias
 
