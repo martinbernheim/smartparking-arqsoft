@@ -138,7 +138,7 @@ services:
       SEED_CLIENT2_ID: ${SEED_CLIENT2_ID:-}
     volumes:
       - ./keys:/run/keys:ro
-    # Puerto publicado solo para desarrollo (en H5 el acceso pasa por Nginx).
+    # Puerto publicado solo para desarrollo: los clientes (SPA, k6, curl) acceden vía Nginx (:8080).
     ports: ["${IDENTITY_PORT:-3001}:3001"]
     depends_on:
       mongo: { condition: service_healthy }
@@ -152,28 +152,51 @@ services:
       retries: 10
       start_period: 10s
 
-  api:
+  # Migraciones + seed en un servicio one-shot: evita la carrera entre las 2 réplicas de la API.
+  api-migrate:
     build:
       context: .
       dockerfile: api/Dockerfile
-    environment:
+    image: smartparking-api:local
+    command: ["sh", "-c", "../node_modules/.bin/prisma migrate deploy && node dist/seed/run-seed.js"]
+    environment: &api-env
       PORT: 3002
       DATABASE_URL: ${DATABASE_URL:-postgresql://smartparking:smartparking@postgres:5432/smartparking}
       DATABASE_REPLICA_URL: ${DATABASE_REPLICA_URL:-postgresql://smartparking:smartparking@postgres:5432/smartparking}
       IDENTITY_BASE_URL: ${IDENTITY_BASE_URL:-http://identity-service:3001}
       JWKS_URL: ${JWKS_URL:-http://identity-service:3001/.well-known/jwks.json}
       JWT_ISSUER: ${JWT_ISSUER:-smartparking-identity}
-      AUDIT_PUBLISHER: ${AUDIT_PUBLISHER:-log}
+      AUDIT_PUBLISHER: ${AUDIT_PUBLISHER:-rabbitmq}
+      AUDIT_EXCHANGE: ${AUDIT_EXCHANGE:-smartparking.events}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-30}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SEED_CLIENT1_EMAIL: ${SEED_CLIENT1_EMAIL:-}
       SEED_CLIENT1_ID: ${SEED_CLIENT1_ID:-}
       SEED_CLIENT2_EMAIL: ${SEED_CLIENT2_EMAIL:-}
       SEED_CLIENT2_ID: ${SEED_CLIENT2_ID:-}
-    # Puerto publicado solo para desarrollo (en H5 el acceso pasa por Nginx y habrá 2 réplicas).
-    ports: ["${API_PORT:-3002}:3002"]
+    restart: "no"
     depends_on:
       postgres: { condition: service_healthy }
+    networks: [internal]
+
+  # API: 2 réplicas detrás de Nginx (balanceo por DNS round-robin de Docker). Sin puerto publicado:
+  # los clientes acceden por http://localhost:8080/api/... Para depurar una réplica suelta, usar
+  # `docker compose exec api wget -qO- localhost:3002/health` o descomentar un puerto (solo con 1 réplica).
+  api:
+    image: smartparking-api:local
+    command: ["node", "dist/server.js"]
+    deploy:
+      replicas: 2
+    environment: *api-env
+    # ports: ["${API_PORT:-3002}:3002"]   # solo desarrollo, con 1 réplica (deploy.replicas: 1)
+    depends_on:
+      api-migrate: { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
       identity-service: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
     networks: [internal]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
@@ -182,8 +205,26 @@ services:
       retries: 10
       start_period: 20s
 
-  # TODO (H4): audit-service, build ./audit-service
-  # TODO (H5): nginx (nginx:alpine, 8080:80) y web (SPA React + Vite servida por Nginx en /)
+  # Punto de entrada único: http://localhost:8080  (/auth, /.well-known -> identity; /api -> api; / -> web)
+  nginx:
+    build:
+      context: ./nginx
+    ports: ["${NGINX_PORT:-8080}:80"]
+    depends_on:
+      - api
+      - identity-service
+    networks: [internal]
+    restart: unless-stopped
+
+  # TODO (H4): audit-service (build ./audit-service), depende de rabbitmq y elasticsearch healthy.
+  # audit-service:
+  #   build: { context: ., dockerfile: audit-service/Dockerfile }
+  #   ...
+  # TODO (H5/H6): web (SPA React + Vite servida por Nginx interno en :80). Nginx ya enruta "/" a web:80
+  # (responde 502 mientras no exista).
+  # web:
+  #   build: { context: ., dockerfile: web/Dockerfile }
+  #   networks: [internal]
 
 networks:
   internal:

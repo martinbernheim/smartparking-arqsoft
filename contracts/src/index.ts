@@ -5,3 +5,4 @@ export * from './cliente.dto';
 export * from './vehiculo.dto';
 export * from './reserva.dto';
 export * from './evento-auditoria.dto';
+export * from './routing-key';

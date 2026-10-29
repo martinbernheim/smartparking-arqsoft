@@ -2,6 +2,7 @@ import { generateKeyPairSync, randomUUID, type KeyObject } from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import type { EventoAuditoriaDTO, Rol } from '@smartparking/contracts';
 import { createApp } from '../src/app';
+import { CacheService, type RedisLike } from '../src/cache/cache.service';
 import type { IAuditEventPublisher } from '../src/audit/audit-event-publisher';
 import type { IJwks } from '../src/auth/jwks-client';
 import type { Cliente, ClienteRepository } from '../src/clientes/cliente.repository';
@@ -132,6 +133,17 @@ export class RecordingAudit implements IAuditEventPublisher {
   async publicar(e: EventoAuditoriaDTO) { this.events.push(e); }
 }
 
+export class FakeRedis implements RedisLike {
+  store = new Map<string, string>();
+  ttls = new Map<string, number>();
+  failing = false;
+  private check() { if (this.failing) throw new Error('redis caído'); }
+  async get(k: string) { this.check(); return this.store.get(k) ?? null; }
+  async set(k: string, v: string, _m: 'EX', s: number) { this.check(); this.store.set(k, v); this.ttls.set(k, s); return 'OK'; }
+  async del(...ks: string[]) { this.check(); ks.forEach((k) => this.store.delete(k)); return ks.length; }
+  async incr(k: string) { this.check(); const n = Number(this.store.get(k) ?? 0) + 1; this.store.set(k, String(n)); return n; }
+}
+
 export class FakeUserAdmin implements IUserAdmin {
   calls: { token: string; email: string; rol: string }[] = [];
   async crearUsuario(token: string, req: { email: string; password: string; rol: string }) {
@@ -150,10 +162,11 @@ export function buildWorld() {
   vehiculos.reservas = reservas;
   const audit = new RecordingAudit();
   const userAdmin = new FakeUserAdmin();
+  const redis = new FakeRedis();
   const app = createApp({
     env: { JWT_ISSUER: ISSUER, INSTANCE_ID: 'test' },
     jwks: staticJwks(),
-    clientes, vehiculos, reservas, userAdmin, audit,
+    clientes, vehiculos, reservas, userAdmin, audit, cache: new CacheService(redis, 30),
   });
 
   const mkCliente = async (n: number) => {
@@ -161,7 +174,7 @@ export function buildWorld() {
     const v = await vehiculos.create({ matricula: `SBA 000${n}`, clienteId: c.id });
     return { cliente: c, vehiculo: v, token: signToken(c.identityUserId, ['CLIENTE']) };
   };
-  return { app, clientes, vehiculos, reservas, audit, userAdmin, mkCliente, adminToken: signToken('admin-1', ['ADMIN']) };
+  return { app, clientes, vehiculos, reservas, audit, userAdmin, redis, mkCliente, adminToken: signToken('admin-1', ['ADMIN']) };
 }
 
 export const bearer = (t: string) => ({ Authorization: `Bearer ${t}` });

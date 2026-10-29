@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "main": "dist/server.js",
-  "prisma": { "schema": "prisma/schema.prisma" },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "scripts": {
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
@@ -14,7 +16,9 @@
   "dependencies": {
     "@prisma/client": "^6.19.0",
     "@smartparking/contracts": "*",
+    "amqplib": "^2.2.0",
     "express": "^5.1.0",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^6.19.0",
     "swagger-ui-express": "^5.0.1",
@@ -22,6 +26,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.8",
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.9.0",

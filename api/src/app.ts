@@ -8,13 +8,15 @@ import type { ClienteRepository } from './clientes/cliente.repository';
 import { ClientesController } from './clientes/clientes.controller';
 import { clientesRoutes } from './clientes/clientes.routes';
 import { ClientesService } from './clientes/clientes.service';
+import { CacheService } from './cache/cache.service';
 import type { Env } from './config/env';
 import { openapi } from './docs/openapi';
 import type { IUserAdmin } from './identity/user-admin.client';
 import type { ReservaRepository } from './reservas/reserva.repository';
 import { ReservasController } from './reservas/reservas.controller';
 import { adminReservasRoutes, reservasRoutes } from './reservas/reservas.routes';
-import { ReservasService } from './reservas/reservas.service';
+import { ReservaCommandService } from './reservas/reserva-command.service';
+import { ReservaQueryService } from './reservas/reserva-query.service';
 import { errorHandler, notFoundHandler } from './shared/error-handler';
 import type { VehiculoRepository } from './vehiculos/vehiculo.repository';
 import { VehiculosController } from './vehiculos/vehiculos.controller';
@@ -29,18 +31,22 @@ export interface AppDeps {
   reservas: ReservaRepository;
   userAdmin: IUserAdmin;
   audit: IAuditEventPublisher; // los módulos CRUD solo conocen el puerto
+  cache?: CacheService; // sin Redis (tests/dev) = caché deshabilitada
   isReady?: () => boolean;
 }
 
 // Composición de dependencias (inyectables para los tests).
-export function createApp({ env, jwks, clientes, vehiculos, reservas, userAdmin, audit, isReady = () => true }: AppDeps) {
+export function createApp({ env, jwks, clientes, vehiculos, reservas, userAdmin, audit, cache = new CacheService(null), isReady = () => true }: AppDeps) {
   const ownership = new OwnershipResolver(clientes);
   const actor = ownership.actor();
   const auth = jwtAuth(jwks, env.JWT_ISSUER);
 
   const clientesCtl = new ClientesController(new ClientesService(clientes, userAdmin, audit));
   const vehiculosCtl = new VehiculosController(new VehiculosService(vehiculos, clientes, audit));
-  const reservasCtl = new ReservasController(new ReservasService(reservas, vehiculos, audit));
+  const reservasCtl = new ReservasController(
+    new ReservaCommandService(reservas, vehiculos, audit, cache),
+    new ReservaQueryService(reservas, cache),
+  );
 
   const app = express();
   app.disable('x-powered-by');

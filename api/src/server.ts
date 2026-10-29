@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { createAuditPublisher } from './audit/audit.factory';
 import { JwksClient } from './auth/jwks-client';
 import { PrismaClienteRepository } from './clientes/cliente.repository';
+import { CacheService, createRedisClient } from './cache/cache.service';
 import { loadEnv } from './config/env';
 import { closeDb, createDb } from './db/prisma';
 import { UserAdminClient } from './identity/user-admin.client';
@@ -23,12 +24,13 @@ async function main() {
     vehiculos: new PrismaVehiculoRepository(db),
     reservas: new PrismaReservaRepository(db),
     userAdmin: new UserAdminClient(env.IDENTITY_BASE_URL),
-    audit: createAuditPublisher(env.AUDIT_PUBLISHER),
+    audit: createAuditPublisher(env.AUDIT_PUBLISHER, { rabbitmqUrl: env.RABBITMQ_URL, exchange: env.AUDIT_EXCHANGE }),
+    cache: new CacheService(env.REDIS_URL ? createRedisClient(env.REDIS_URL) : null, env.CACHE_TTL_SECONDS),
     isReady: () => ready,
   });
 
   const server = app.listen(env.PORT, () =>
-    logger.info('API escuchando', { port: env.PORT, instance: env.INSTANCE_ID, audit: env.AUDIT_PUBLISHER }),
+    logger.info('API escuchando', { port: env.PORT, instance: env.INSTANCE_ID, audit: env.AUDIT_PUBLISHER, cache: Boolean(env.REDIS_URL) }),
   );
 
   const shutdown = () => {
