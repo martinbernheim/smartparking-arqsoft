@@ -181,9 +181,12 @@ services:
       SEED_CLIENT2_EMAIL: ${SEED_CLIENT2_EMAIL:-}
       SEED_CLIENT2_ID: ${SEED_CLIENT2_ID:-}
     restart: "no"
+    # los suscriptores deben haber declarado sus colas antes de que el seed publique eventos
     depends_on:
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
+      audit-service: { condition: service_healthy }
+      read-model-service: { condition: service_healthy }
     networks: [internal]
 
   # API: 2 réplicas detrás de Nginx (balanceo por DNS round-robin de Docker). Sin puerto publicado:
