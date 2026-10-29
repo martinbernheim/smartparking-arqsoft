@@ -1,15 +1,22 @@
 # SmartParking – Arquitectura de Software
 
-Este repositorio contiene el diseño arquitectónico y la implementación del sistema SmartParking, desarrollado para la evaluación grupal de la asignatura: diagrama UML de componentes, escenarios de calidad y el registro de decisión arquitectónica ADR-01, con sus justificaciones. Primero se cierra el diseño y luego se implementa siguiendo esas decisiones.
+Diseño arquitectónico e implementación completa del sistema SmartParking (evaluación grupal de Arquitectura de Software): Identity propio con JWT RS256, API de clientes, vehículos y reservas, auditoría por eventos (RabbitMQ pub/sub + Elasticsearch), modelo de lectura CQRS, caché Redis, Nginx con 2 réplicas y SPA en React.
+
+> **Empezá por acá:** [docs/GUIA_DE_USO.md](docs/GUIA_DE_USO.md) (cómo levantar y usar todo) · [docs/DEMO.md](docs/DEMO.md) (guion de presentación) · [docs/adr/ADR-00-indice.md](docs/adr/ADR-00-indice.md) (decisiones de arquitectura)
 
 ## Contenido
 
-- `docs/PLAN_SmartParking.md`: decisiones de diseño y sus justificaciones.
-- `docs/diagramas/`: diagramas de componentes en PlantUML (`.puml`) y su exportación en PNG.
-
-- `docs/SmartParking_Parte1.md` / `.pdf`: documento de diseño (A1–A4).
-- `docs/PLAN_Implementacion.md`: plan de implementación por hitos.
-
+| Carpeta / archivo | Qué es |
+|---|---|
+| `identity-service/` | Autenticación propia: login, emisión de JWT RS256, JWKS, alta de usuarios (MongoDB) |
+| `api/` | API de negocio: Clientes, Vehículos, Reservas (PostgreSQL + Prisma, Redis, publicación de eventos) |
+| `audit-service/` | Suscriptor de eventos → log de auditoría independiente en Elasticsearch |
+| `read-model-service/` | Suscriptor de eventos → modelo de lectura CQRS en MongoDB (`/consultas/`) |
+| `web/` | SPA React + Vite + TypeScript |
+| `nginx/` | Punto de entrada único y balanceo de las réplicas de la API |
+| `contracts/` | DTOs compartidos (zod) y routing keys de eventos |
+| `load-tests/` | Prueba de carga k6 (Escenario 1) |
+| `docs/` | Entrega de diseño (PDF), ADRs, diagramas, diseño visual, guía de uso y demo |
 
 ## Cómo ejecutar
 
